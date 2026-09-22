@@ -101,7 +101,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>1212-bdm-model</artifactId>
+      <artifactId>12121-bdm-model</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
