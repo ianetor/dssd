@@ -1,0 +1,32 @@
+{
+  "id" : "Proceso1",
+  "name" : "Proceso1",
+  "type" : "form",
+  "uuid" : "14094363-f6f0-4186-a10b-752cad960136",
+  "modelVersion" : "2.6",
+  "lastUpdate" : 1788375470459,
+  "description" : "Page generated with Bonita UI designer",
+  "rows" : [
+    [ ]
+  ],
+  "variables" : { },
+  "assets" : [
+    {
+      "id" : "2275928b-cbf2-4b1a-874b-96ee5b337ce1",
+      "name" : "localization.json",
+      "type" : "json",
+      "order" : 0,
+      "external" : false
+    },
+    {
+      "id" : "095488d6-1e7f-4173-9595-cd7d83d46494",
+      "name" : "style.css",
+      "type" : "css",
+      "order" : 0,
+      "external" : false
+    }
+  ],
+  "inactiveAssets" : [ ],
+  "webResources" : [ ],
+  "hasValidationError" : false
+}
