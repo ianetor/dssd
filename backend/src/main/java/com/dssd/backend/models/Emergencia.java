@@ -1,47 +1,35 @@
-package com.dssd.model;
+package com.dssd.backend.models;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "emergencias")
-public class Emergencia {
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "tipo_emergencia", discriminatorType = DiscriminatorType.STRING)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public abstract class Emergencia {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String titulo;
-    private String descripcion;
     private String nivelGravedad;
     private String zonaAfectada;
-    private String estado; // ej: "REGISTRADA", "EN_PROCESO"
+    private String descripcion;
+    private String estado;
 
-    public Emergencia() {}
+    @ManyToOne
+    @JoinColumn(name = "municipio_id")
+    private Municipio municipioAfectado;
 
-    public Emergencia(String titulo, String descripcion, String nivelGravedad, String zonaAfectada) {
-        this.titulo = titulo;
-        this.descripcion = descripcion;
-        this.nivelGravedad = nivelGravedad;
-        this.zonaAfectada = zonaAfectada;
-        this.estado = "REGISTRADA";
-    }
-
-    // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getTitulo() { return titulo; }
-    public void setTitulo(String titulo) { this.titulo = titulo; }
-
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-
-    public String getNivelGravedad() { return nivelGravedad; }
-    public void setNivelGravedad(String nivelGravedad) { this.nivelGravedad = nivelGravedad; }
-
-    public String getZonaAfectada() { return zonaAfectada; }
-    public void setZonaAfectada(String zonaAfectada) { this.zonaAfectada = zonaAfectada; }
-
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
+    @OneToMany(mappedBy = "emergencia", cascade = { CascadeType.REMOVE, CascadeType.PERSIST, CascadeType.MERGE }, orphanRemoval = true)
+    private List<LoteNecesidad> lotes = new ArrayList<>();
 }
