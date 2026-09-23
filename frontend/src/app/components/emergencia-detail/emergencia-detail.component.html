@@ -1,0 +1,61 @@
+<section class="panel" *ngIf="!loading && emergencia; else loadingTpl">
+  <a routerLink="/" class="back-link">Volver al inicio</a>
+  <h2>Detalle de emergencia</h2>
+
+  <div class="summary">
+    <p><strong>Tipo:</strong> {{ emergencia.tipoEmergencia }}</p>
+    <p><strong>Estado:</strong> {{ emergencia.estado }}</p>
+    <p><strong>Zona:</strong> {{ emergencia.zonaAfectada }}</p>
+    <p><strong>Gravedad:</strong> {{ emergencia.nivelGravedad }}</p>
+    <p><strong>Municipio:</strong> {{ emergencia.municipioNombre ?? 'Sin municipio' }}</p>
+    <p><strong>Descripción:</strong> {{ emergencia.descripcion }}</p>
+  </div>
+
+  <div class="meta" *ngIf="emergencia.hectareasAfectadas !== null">
+    <strong>Hectáreas afectadas:</strong> {{ emergencia.hectareasAfectadas }}
+  </div>
+  <div class="meta" *ngIf="emergencia.milimetrosAgua !== null">
+    <strong>Milímetros de agua:</strong> {{ emergencia.milimetrosAgua }}
+  </div>
+  <div class="meta" *ngIf="emergencia.magnitudRichter !== null">
+    <strong>Magnitud Richter:</strong> {{ emergencia.magnitudRichter }}
+  </div>
+
+  <div class="lotes">
+    <h3>Lotes</h3>
+    <ul *ngIf="emergencia.lotes.length; else sinLotes">
+      <li *ngFor="let lote of emergencia.lotes">
+        {{ lote.tipoRecurso }} — requerido: {{ lote.cantidadRequerida }} / cubierto: {{ lote.cantidadCubierta }}
+      </li>
+    </ul>
+    <ng-template #sinLotes>
+      <p>No hay lotes cargados todavía.</p>
+    </ng-template>
+  </div>
+
+  <form [formGroup]="loteForm" (ngSubmit)="submitLote()" class="lote-form">
+    <h3>Agregar lote</h3>
+
+    <div class="grid">
+      <label>
+        <span>Tipo de recurso</span>
+        <input formControlName="tipoRecurso" type="text" placeholder="Ej: Raciones" />
+      </label>
+
+      <label>
+        <span>Cantidad requerida</span>
+        <input formControlName="cantidadRequerida" type="number" min="1" />
+      </label>
+    </div>
+
+    <button type="submit" [disabled]="isSubmitting">
+      {{ isSubmitting ? 'Publicando...' : 'Publicar lote' }}
+    </button>
+
+    <p class="error" *ngIf="error">{{ error }}</p>
+  </form>
+</section>
+
+<ng-template #loadingTpl>
+  <p>Cargando emergencia...</p>
+</ng-template>

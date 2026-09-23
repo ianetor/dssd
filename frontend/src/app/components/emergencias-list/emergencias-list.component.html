@@ -1,0 +1,29 @@
+<section class="panel">
+  <a routerLink="/" class="back-link">Volver al inicio</a>
+  <div class="header-row">
+    <h2>Emergencias</h2>
+    <a routerLink="/nueva" class="primary-btn">+ Nueva emergencia</a>
+  </div>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+
+  <div *ngIf="loading" class="loading">Cargando...</div>
+
+  <div class="cards" *ngIf="!loading">
+    <article class="card" *ngFor="let emergencia of emergencias">
+      <div class="card-head">
+        <strong>{{ emergencia.tipoEmergencia }}</strong>
+        <span class="badge">{{ emergencia.estado }}</span>
+      </div>
+
+      <p><strong>Zona:</strong> {{ emergencia.zonaAfectada }}</p>
+      <p><strong>Gravedad:</strong> {{ emergencia.nivelGravedad }}</p>
+      <p><strong>Municipio:</strong> {{ emergencia.municipioNombre ?? 'Sin municipio' }}</p>
+      <p><strong>Descripción:</strong> {{ emergencia.descripcion }}</p>
+
+      <div class="actions">
+        <a [routerLink]="['/emergencias', emergencia.id]">Ver detalle</a>
+      </div>
+    </article>
+  </div>
+</section>

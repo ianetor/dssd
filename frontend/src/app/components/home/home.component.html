@@ -1,0 +1,58 @@
+<section class="home-panel">
+  <div class="welcome">
+    <div>
+      <p class="eyebrow">Centro de coordinación</p>
+      <h1>Inicio</h1>
+      <p class="subtitle">Una vista rápida del estado actual de las emergencias.</p>
+    </div>
+    <a routerLink="/nueva" class="primary-btn">+ Nueva emergencia</a>
+  </div>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+  <div class="loading" *ngIf="loading">Cargando resumen...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="stats-grid">
+      <article class="stat-card total">
+        <span>Total</span>
+        <strong>{{ emergencias.length }}</strong>
+        <small>emergencias registradas</small>
+      </article>
+      <article class="stat-card active">
+        <span>Activas</span>
+        <strong>{{ activas }}</strong>
+        <small>requieren seguimiento</small>
+      </article>
+      <article class="stat-card registered">
+        <span>Registradas</span>
+        <strong>{{ registradas }}</strong>
+        <small>pendientes de gestión</small>
+      </article>
+    </div>
+
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Seguimiento</p>
+        <h2>Últimas emergencias</h2>
+      </div>
+      <a routerLink="/emergencias" class="text-link">Ver todas</a>
+    </div>
+
+    <div class="recent-list" *ngIf="recientes.length; else emptyState">
+      <article class="recent-item" *ngFor="let emergencia of recientes">
+        <div class="recent-main">
+          <strong>{{ emergencia.tipoEmergencia }}</strong>
+          <span>{{ emergencia.zonaAfectada }}</span>
+        </div>
+        <div class="recent-meta">
+          <span class="badge">{{ emergencia.estado }}</span>
+          <a [routerLink]="['/emergencias', emergencia.id]">Ver detalle</a>
+        </div>
+      </article>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-state">Todavía no hay emergencias registradas.</div>
+    </ng-template>
+  </ng-container>
+</section>

@@ -1,0 +1,74 @@
+<section class="panel">
+  <a routerLink="/" class="back-link">Volver al inicio</a>
+  <h2>Registrar emergencia</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="grid">
+      <label>
+        <span>Tipo</span>
+        <select formControlName="tipoEmergencia">
+          <option value="INCENDIO">Incendio</option>
+          <option value="INUNDACION">Inundación</option>
+          <option value="TERREMOTO">Terremoto</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Gravedad</span>
+        <select formControlName="nivelGravedad">
+          <option value="BAJA">Baja</option>
+          <option value="MEDIA">Media</option>
+          <option value="ALTA">Alta</option>
+          <option value="CRITICO">Crítico</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Municipio</span>
+        <select formControlName="municipioId">
+          <option [ngValue]="null">Sin municipio</option>
+          <option *ngFor="let municipio of municipios" [ngValue]="municipio.id">
+            {{ municipio.nombre }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        <span>Zona afectada</span>
+        <input formControlName="zonaAfectada" type="text" placeholder="Ej: Barrio Norte" />
+      </label>
+    </div>
+
+    <label>
+      <span>Descripción</span>
+      <textarea formControlName="descripcion" rows="4" placeholder="Describí la emergencia..."></textarea>
+    </label>
+
+    <div class="grid" *ngIf="tipoActual === 'INCENDIO'">
+      <label>
+        <span>Hectáreas afectadas</span>
+        <input formControlName="hectareasAfectadas" type="number" min="0" step="0.1" />
+      </label>
+    </div>
+
+    <div class="grid" *ngIf="tipoActual === 'INUNDACION'">
+      <label>
+        <span>Milímetros de agua</span>
+        <input formControlName="milimetrosAgua" type="number" min="0" step="0.1" />
+      </label>
+    </div>
+
+    <div class="grid" *ngIf="tipoActual === 'TERREMOTO'">
+      <label>
+        <span>Magnitud Richter</span>
+        <input formControlName="magnitudRichter" type="number" min="0" step="0.1" />
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="submit" [disabled]="isSubmitting">{{ isSubmitting ? 'Guardando...' : 'Registrar emergencia' }}</button>
+    </div>
+
+    <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+  </form>
+</section>
