@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { retry, timeout } from 'rxjs/operators';
-import { environment } from '../helpers/environment';
+import { environment } from '../../enviroments/environment';
 import { Emergencia, EmergenciaPayload, LotePayload } from '../models/emergencia.model';
 
 @Injectable({
