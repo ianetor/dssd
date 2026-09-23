@@ -48,13 +48,46 @@ npm start
 
 ---
 
-## Verificaciones Realizadas
+## 3. Integración con Bonita (RescueSync)
 
-1. **Backend**:
-   - `mvn clean compile`: Compiló exitosamente el código fuente.
-   - `mvn test`: Ejecutó los tests de inicio de contexto de Spring Boot con resultado **BUILD SUCCESS** (0 fallas, 0 errores).
-2. **Frontend**:
-   - `npm install`: Instaló correctamente todos los paquetes y dependencias en `node_modules`.
-   - `npm run build`: Generó el bundle de producción exitosamente (`dist/frontend`) en 20 segundos sin errores.
-3. **Control de Versiones (Git)**:
-   - Verificado con `git status` que ni `backend/target/` ni `frontend/node_modules/` o `frontend/dist/` están trackeados por git.
+Este proyecto no contiene el proyecto Bonita: se integra contra un **Bonita Studio** que corre en cada máquina de desarrollo, en un repo aparte.
+
+### ¿Cómo correr Bonita?
+
+1. Abrir el proyecto Bonita en **Bonita Studio** (rebuild de la máquina).
+2. Configurar el puerto del servidor embebido: `Preferences` → `Server` → **Port number = 8081** (no usar 8080, lo usa el backend). Requiere reiniciar el Studio.
+3. El botón **Run** desplega el proceso en el motor embebido. **Ojo**: el botón aparece gris si el servidor de Bonita no arrancó. Si pasa:
+   - Cerrar el Studio por completo y volver a abrirlo (el cambio de puerto toma efecto al reiniciar).
+   - Verificar el indicador del servidor embebido (círculo verde/rojo en la barra).
+   - Tener el diagrama abierto y seleccionado en el editor.
+   - Revisar la validación del proceso (errores deshabilitan el Run).
+   - Logs: `Help` → `Show Bonita Studio log`.
+4. Con el proceso corriendo, Bonita responde en `http://localhost:8081/bonita`.
+
+`host.docker.internal` resuelve el host desde los contenedores Docker
+
+### Endpoints disponibles
+
+Todos bajo `http://localhost:8080/api/bonita`:
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/health` | Estado de conexión/login con Bonita |
+| GET | `/procesos` | Procesos en el motor Bonita |
+| GET | `/tareas` | Tareas pendientes |
+| GET | `/casos` | Casos (instancias de proceso) |
+| GET | `/usuarios` | Usuarios de Bonita |
+| GET | `/recurso/{recurso}?p=0&c=100` | Passthrough genérico a cualquier recurso `/API/{recurso}` de Bonita |
+
+Los endpoints de recursos devuelven el **JSON crudo** de Bonita como `text/plain`.
+
+### Uso desde el frontend
+
+`src/app/helpers/environment.ts` define `apiUrl`. Consumir siempre vía el backend, nunca directo a Bonita:
+
+```ts
+import { BonitaService } from '../services/bonita.service';
+// this.bonita.procesos().subscribe(json => ...);
+```
+
+---
