@@ -30,6 +30,6 @@ public abstract class Emergencia {
     @JoinColumn(name = "municipio_id")
     private Municipio municipioAfectado;
 
-    @OneToMany(mappedBy = "emergencia", cascade = { CascadeType.REMOVE }, orphanRemoval = true)
+    @OneToMany(mappedBy = "emergencia", cascade = { CascadeType.REMOVE, CascadeType.PERSIST, CascadeType.MERGE }, orphanRemoval = true)
     private List<LoteNecesidad> lotes = new ArrayList<>();
 }

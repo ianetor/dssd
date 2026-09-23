@@ -31,7 +31,7 @@ public class OfertaAyuda {
     @JoinTable(name = "consorcio_oferta", joinColumns = @JoinColumn(name = "oferta_id"), inverseJoinColumns = @JoinColumn(name = "ong_colaboradora_id"))
     private List<Ong> ongsColaboradoras = new ArrayList<>();
 
-    @OneToMany(mappedBy = "detalleOferta", cascade = { CascadeType.REMOVE, CascadeType.PERSIST,
+    @OneToMany(mappedBy = "oferta", cascade = { CascadeType.REMOVE, CascadeType.PERSIST,
             CascadeType.MERGE }, orphanRemoval = true)
     private List<DetalleOferta> detalles = new ArrayList<>();
 }
