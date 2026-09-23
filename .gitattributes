@@ -1,0 +1,8 @@
+* text=auto
+
+# Shell scripts must keep Unix line endings for Linux containers.
+*.sh text eol=lf
+backend/mvnw text eol=lf
+
+# Windows launcher scripts use Windows line endings.
+*.cmd text eol=crlf
