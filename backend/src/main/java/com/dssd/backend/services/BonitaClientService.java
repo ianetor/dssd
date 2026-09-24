@@ -25,9 +25,9 @@ public class BonitaClientService {
     private volatile String jsessionId;
 
     public BonitaClientService(
-            @Value("${bonita.url}") String bonitaUrl,
-            @Value("${bonita.username}") String username,
-            @Value("${bonita.password}") String password) {
+            @Value("${BONITA_URL}") String bonitaUrl,
+            @Value("${BONITA_USERNAME}") String username,
+            @Value("${BONITA_PASSWORD}") String password) {
         this.restClient = RestClient.builder().baseUrl(bonitaUrl).build();
         this.bonitaUrl = bonitaUrl;
         this.username = username;

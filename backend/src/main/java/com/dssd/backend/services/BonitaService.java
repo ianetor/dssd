@@ -1,4 +1,4 @@
-package com.dssd.service;
+package com.dssd.backend.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,13 +14,13 @@ import java.util.*;
 @Service
 public class BonitaService {
 
-    @Value("${bonita.api.url:http://bonita:8080/bonita}")
+    @Value("${BONITA_URL}")
     private String bonitaUrl;
 
-    @Value("${bonita.api.username:install}")
+    @Value("${BONITA_USERNAME}")
     private String username;
 
-    @Value("${bonita.api.password:install}")
+    @Value("${BONITA_PASSWORD}")
     private String password;
 
     private final RestTemplate restTemplate = new RestTemplate();

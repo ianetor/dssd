@@ -34,7 +34,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
-      start_period: 60s
+      start_period: 120s
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -43,9 +43,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: 1212
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
-      BONITA_URL: ${BONITA_URL:-http://host.docker.internal:8081/bonita}
-      BONITA_USERNAME: ${BONITA_USERNAME:-install}
-      BONITA_PASSWORD: ${BONITA_PASSWORD:-install}
+      BONITA_URL: http://host.docker.internal:8081/bonita
+      BONITA_USERNAME: install
+      BONITA_PASSWORD: install
     volumes:
       - ./backend:/app
       - maven_cache:/root/.m2
