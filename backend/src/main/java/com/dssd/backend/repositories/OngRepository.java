@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OngRepository extends JpaRepository<Ong, Long> {
+    java.util.Optional<Ong> findByBonitaUsername(String bonitaUsername);
 }

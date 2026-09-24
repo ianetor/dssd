@@ -14,27 +14,156 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 32px;
+  padding: 14px 28px;
   background: #0f172a;
   color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
 }
 
 .brand {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: white;
-  text-decoration: none;
-}
-
-.nav {
   display: flex;
-  gap: 18px;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-decoration: none;
+
+  .brand-icon {
+    font-size: 1.5rem;
+  }
 }
 
-.nav a {
-  color: white;
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  a {
+    color: #94a3b8;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+
+    &:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &.active {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  .btn-nav-action {
+    background: #2563eb;
+    color: #ffffff !important;
+
+    &:hover {
+      background: #1d4ed8 !important;
+    }
+  }
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+
+  .user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #f8fafc;
+  }
+
+  .user-entity {
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+}
+
+.role-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  border-radius: 9999px;
+
+  &.badge-muni {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  &.badge-coord {
+    background: #f3e8ff;
+    color: #6b21a8;
+  }
+
+  &.badge-ong {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  &.badge-auditor {
+    background: #fef3c7;
+    color: #92400e;
+  }
+}
+
+.btn-logout {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #ef4444;
+    color: #ffffff;
+  }
+}
+
+.btn-login {
+  background: #2563eb;
+  color: #ffffff;
   text-decoration: none;
   font-weight: 600;
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #1d4ed8;
+  }
 }
 
 .content {

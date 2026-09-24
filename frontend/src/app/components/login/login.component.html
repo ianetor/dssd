@@ -1,0 +1,61 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo-badge">🚨</div>
+      <h2>RescueSync</h2>
+      <p class="subtitle">Autenticacion para sistema de emergencias</p>
+    </div>
+
+    @if (errorMessage) {
+    <div class="alert alert-error">
+      <span class="alert-icon">⚠️</span>
+      <span>{{ errorMessage }}</span>
+    </div>
+    }
+
+    <form (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-group">
+        <label for="username">Usuario Bonita</label>
+        <input type="text" id="username" name="username" [(ngModel)]="username"
+          placeholder="Ej: muni_user, coord_user, etc." [disabled]="isLoading" required autocomplete="username" />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" [(ngModel)]="password" placeholder="••••••••"
+          [disabled]="isLoading" required autocomplete="current-password" />
+      </div>
+
+      <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+        @if (isLoading) {
+        <span class="spinner"></span>
+        <span>Validando con Bonita...</span>
+        } @else {
+        <span>Iniciar Sesión</span>
+        }
+      </button>
+    </form>
+
+    <div class="demo-section">
+      <span class="demo-title">Accesos Rápidos de Prueba (Roles Bonita)</span>
+      <div class="demo-buttons">
+        <button type="button" class="btn-demo muni" (click)="setDemoUser('anthony.nichols', 'bpm')"
+          title="Operador Municipal">
+          🏛️ Operador Municipal
+        </button>
+        <button type="button" class="btn-demo coord" (click)="setDemoUser('daniela.angelo', 'bpm')"
+          title="Centro Coordinador Regional">
+          🌐 Centro Coordinador
+        </button>
+        <button type="button" class="btn-demo ong" (click)="setDemoUser('april.sanchez', 'bpm')"
+          title="Representante de ONG">
+          🤝 Representante ONG
+        </button>
+        <button type="button" class="btn-demo auditor" (click)="setDemoUser('favio.riviera', 'bpm')"
+          title="Auditor / Directivo">
+          📊 Auditor / Directivo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,6 +1,59 @@
 <div class="app-shell">
   <header class="topbar">
-    <a class="brand" routerLink="/">RescueSync</a>
+    <div class="topbar-left">
+      <a class="brand" routerLink="/">
+        <span class="brand-icon">🚨</span>
+        <span class="brand-name">RescueSync</span>
+      </a>
+
+      @if (authService.isLoggedIn()) {
+        <nav class="nav-links">
+          <a routerLink="/emergencias" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            @switch (authService.userRole()) {
+              @case ('OPERADOR_MUNICIPAL') { Mis Emergencias }
+              @case ('COORDINADOR_REGIONAL') { Monitoreo Regional }
+              @case ('REPRESENTANTE_ONG') { Convocatorias Abiertas }
+              @default { Emergencias }
+            }
+          </a>
+
+          @if (authService.hasRole(['OPERADOR_MUNICIPAL', 'COORDINADOR_REGIONAL'])) {
+            <a routerLink="/nueva" routerLinkActive="active" class="btn-nav-action">
+              + Nueva Emergencia
+            </a>
+          }
+        </nav>
+      }
+    </div>
+
+    <div class="topbar-right">
+      @if (authService.isLoggedIn()) {
+        <div class="user-profile">
+          <div class="user-meta">
+            <span class="user-name">{{ authService.userFullName() }}</span>
+            @if (authService.entityName()) {
+              <span class="user-entity">{{ authService.entityName() }}</span>
+            }
+          </div>
+
+          <span
+            class="role-badge"
+            [class.badge-muni]="authService.userRole() === 'OPERADOR_MUNICIPAL'"
+            [class.badge-coord]="authService.userRole() === 'COORDINADOR_REGIONAL'"
+            [class.badge-ong]="authService.userRole() === 'REPRESENTANTE_ONG'"
+            [class.badge-auditor]="authService.userRole() === 'AUDITOR_DIRECTIVO'"
+          >
+            {{ authService.currentUser()?.rolDisplayName || authService.userRole() }}
+          </span>
+
+          <button type="button" class="btn-logout" (click)="logout()" title="Cerrar Sesión">
+            Salir
+          </button>
+        </div>
+      } @else {
+        <a routerLink="/login" class="btn-login">Iniciar Sesión</a>
+      }
+    </div>
   </header>
 
   <main class="content">

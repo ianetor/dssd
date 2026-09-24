@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface MunicipioRepository extends JpaRepository<Municipio, Long> {
+    java.util.Optional<Municipio> findByBonitaUsername(String bonitaUsername);
 }
