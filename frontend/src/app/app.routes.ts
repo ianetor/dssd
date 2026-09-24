@@ -4,16 +4,18 @@ import { EmergenciaFormComponent } from './components/emergencia-form/emergencia
 import { EmergenciasListComponent } from './components/emergencias-list/emergencias-list.component';
 import { HomeComponent } from './components/home/home.component';
 import { LoginComponent } from './components/login/login.component';
-import { authGuard, roleGuard } from './guards/auth.guard';
+import { authGuard, guestGuard, roleGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   {
-    path: '',
-    component: HomeComponent,
-  },
-  {
     path: 'login',
     component: LoginComponent,
+    canActivate: [guestGuard],
+  },
+  {
+    path: '',
+    component: HomeComponent,
+    canActivate: [authGuard],
   },
   {
     path: 'emergencias',

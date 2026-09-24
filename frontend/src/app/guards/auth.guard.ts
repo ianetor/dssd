@@ -11,7 +11,20 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
+  // Si no está autenticado, lo redirige forzosamente al login
   return router.createUrlTree(['/login']);
+};
+
+export const guestGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isLoggedIn()) {
+    return true;
+  }
+
+  // Si ya tiene sesión activa, no le muestra el login y lo lleva a las pantallas de trabajo
+  return router.createUrlTree(['/emergencias']);
 };
 
 export const roleGuard = (allowedRoles: RolUsuario[]): CanActivateFn => {
@@ -27,7 +40,7 @@ export const roleGuard = (allowedRoles: RolUsuario[]): CanActivateFn => {
       return true;
     }
 
-    // Si está autenticado pero no tiene el rol correspondiente, redirige al inicio
-    return router.createUrlTree(['/']);
+    // Si está autenticado pero no tiene el rol correspondiente, redirige a emergencias
+    return router.createUrlTree(['/emergencias']);
   };
 };

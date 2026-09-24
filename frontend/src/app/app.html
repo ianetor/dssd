@@ -1,7 +1,7 @@
 <div class="app-shell">
   <header class="topbar">
     <div class="topbar-left">
-      <a class="brand" routerLink="/">
+      <a class="brand" [routerLink]="authService.isLoggedIn() ? '/' : '/login'">
         <span class="brand-icon">🚨</span>
         <span class="brand-name">RescueSync</span>
       </a>
@@ -50,8 +50,6 @@
             Salir
           </button>
         </div>
-      } @else {
-        <a routerLink="/login" class="btn-login">Iniciar Sesión</a>
       }
     </div>
   </header>
