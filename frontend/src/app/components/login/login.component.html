@@ -1,59 +1,143 @@
-<div class="login-wrapper">
-  <div class="login-card">
-    <div class="login-header">
-      <div class="logo-badge">🚨</div>
-      <h2>RescueSync</h2>
-      <p class="subtitle">Autenticacion para sistema de emergencias</p>
-    </div>
-
-    @if (errorMessage) {
-    <div class="alert alert-error">
-      <span class="alert-icon">⚠️</span>
-      <span>{{ errorMessage }}</span>
-    </div>
-    }
-
-    <form (ngSubmit)="onSubmit()" class="login-form">
-      <div class="form-group">
-        <label for="username">Usuario Bonita</label>
-        <input type="text" id="username" name="username" [(ngModel)]="username"
-          placeholder="Ej: muni_user, coord_user, etc." [disabled]="isLoading" required autocomplete="username" />
+<div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 bg-surface">
+  <div class="max-w-md w-full bg-surface-container-lowest rounded-2xl shadow-xl border border-slate-200 p-6 sm:p-8 space-y-6">
+    <!-- Header with RescueSync Badge -->
+    <div class="text-center space-y-2">
+      <div class="inline-flex items-center justify-center p-3 rounded-2xl bg-[#0b192c] text-white shadow-md mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" viewBox="0 0 48 48" fill="none">
+          <rect width="44" height="44" x="2" y="2" rx="8" fill="#1E3E62" stroke="#38BDF8" stroke-width="1.5"/>
+          <path d="M24 10V38M10 24H38" stroke="#EA580C" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="24" cy="24" r="11" stroke="#38BDF8" stroke-width="2" stroke-dasharray="3 3"/>
+        </svg>
       </div>
 
-      <div class="form-group">
-        <label for="password">Contraseña</label>
-        <input type="password" id="password" name="password" [(ngModel)]="password" placeholder="••••••••"
-          [disabled]="isLoading" required autocomplete="current-password" />
+      <div class="flex items-center justify-center gap-1.5">
+        <h1 class="text-2xl font-black text-[#0b192c] tracking-tight">Rescue<span class="text-[#ea580c]">Sync</span></h1>
+        <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 bg-[#ea580c]/10 text-[#ea580c] border border-[#ea580c]/30 rounded uppercase">RBAC</span>
+      </div>
+      <p class="text-xs text-slate-500 font-medium max-w-xs mx-auto">
+        Portal de Autenticación de Operadores y Organizaciones (Bonita BPM)
+      </p>
+    </div>
+
+    <!-- Error / Info Alert -->
+    <div *ngIf="errorMessage" class="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs space-y-2">
+      <div class="flex items-start gap-2">
+        <span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">warning</span>
+        <div class="font-medium leading-relaxed">{{ errorMessage }}</div>
+      </div>
+      <div *ngIf="serverUnavailable" class="pt-2 border-t border-amber-200 flex justify-end">
+        <button type="button"
+                (click)="loginModoDemo()"
+                class="px-3 py-1.5 bg-[#0b192c] hover:bg-slate-800 text-white rounded text-[11px] font-bold shadow flex items-center gap-1 transition-all">
+          <span>Ingresar en Modo Demo</span>
+          <span class="material-symbols-outlined text-[14px]">login</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Login Form -->
+    <form (ngSubmit)="onSubmit()" class="space-y-4">
+      <div>
+        <label for="username" class="block text-xs font-mono uppercase font-semibold text-slate-700 mb-1">
+          Usuario Bonita BPM
+        </label>
+        <div class="relative">
+          <input type="text"
+                 id="username"
+                 name="username"
+                 [(ngModel)]="username"
+                 [disabled]="isLoading"
+                 required
+                 autocomplete="username"
+                 placeholder="Ej: anthony.nichols"
+                 class="w-full h-11 pl-10 pr-3 bg-surface-container-low border border-slate-300 rounded-lg text-sm text-[#0b192c] font-medium focus:ring-2 focus:ring-secondary outline-none transition-all" />
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
+            person
+          </span>
+        </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" [disabled]="isLoading">
-        @if (isLoading) {
-        <span class="spinner"></span>
-        <span>Validando con Bonita...</span>
-        } @else {
-        <span>Iniciar Sesión</span>
-        }
+      <div>
+        <label for="password" class="block text-xs font-mono uppercase font-semibold text-slate-700 mb-1">
+          Contraseña
+        </label>
+        <div class="relative">
+          <input type="password"
+                 id="password"
+                 name="password"
+                 [(ngModel)]="password"
+                 [disabled]="isLoading"
+                 required
+                 autocomplete="current-password"
+                 placeholder="••••••••"
+                 class="w-full h-11 pl-10 pr-3 bg-surface-container-low border border-slate-300 rounded-lg text-sm text-[#0b192c] font-medium focus:ring-2 focus:ring-secondary outline-none transition-all" />
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
+            key
+          </span>
+        </div>
+      </div>
+
+      <button type="submit"
+              [disabled]="isLoading"
+              class="w-full py-3 px-4 rounded-lg bg-secondary hover:bg-slate-800 text-white font-bold text-sm shadow flex items-center justify-center gap-2 transition-all disabled:opacity-50">
+        <span *ngIf="isLoading" class="material-symbols-outlined text-[18px] animate-spin">refresh</span>
+        <span *ngIf="!isLoading" class="material-symbols-outlined text-[18px]">login</span>
+        <span>{{ isLoading ? 'Validando con Bonita BPM...' : 'Iniciar Sesión' }}</span>
       </button>
     </form>
 
-    <div class="demo-section">
-      <span class="demo-title">Accesos Rápidos de Prueba (Roles Bonita)</span>
-      <div class="demo-buttons">
-        <button type="button" class="btn-demo muni" (click)="setDemoUser('anthony.nichols', 'bpm')"
-          title="Operador Municipal">
-          🏛️ Operador Municipal
+    <!-- Demo Role Fast Access (Created by Tobías) -->
+    <div class="pt-4 border-t border-slate-200 space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-mono uppercase font-bold text-slate-500 tracking-wider">
+          Accesos Rápidos por Rol (Bonita)
+        </span>
+        <span class="text-[10px] font-mono text-slate-400">Clic para rellenar</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <button type="button"
+                (click)="setDemoUser('anthony.nichols', 'bpm')"
+                [ngClass]="username === 'anthony.nichols' ? 'border-[#ea580c] bg-orange-50/70 text-[#ea580c] font-bold' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                class="p-2.5 rounded-lg border text-left flex items-center gap-2 transition-all">
+          <span class="material-symbols-outlined text-[18px]">location_city</span>
+          <div class="truncate">
+            <div class="font-bold truncate">Operador Municipal</div>
+            <div class="text-[10px] text-slate-400 font-mono">anthony.nichols</div>
+          </div>
         </button>
-        <button type="button" class="btn-demo coord" (click)="setDemoUser('daniela.angelo', 'bpm')"
-          title="Centro Coordinador Regional">
-          🌐 Centro Coordinador
+
+        <button type="button"
+                (click)="setDemoUser('daniela.angelo', 'bpm')"
+                [ngClass]="username === 'daniela.angelo' ? 'border-secondary bg-blue-50/70 text-secondary font-bold' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                class="p-2.5 rounded-lg border text-left flex items-center gap-2 transition-all">
+          <span class="material-symbols-outlined text-[18px]">hub</span>
+          <div class="truncate">
+            <div class="font-bold truncate">Centro Coordinador</div>
+            <div class="text-[10px] text-slate-400 font-mono">daniela.angelo</div>
+          </div>
         </button>
-        <button type="button" class="btn-demo ong" (click)="setDemoUser('april.sanchez', 'bpm')"
-          title="Representante de ONG">
-          🤝 Representante ONG
+
+        <button type="button"
+                (click)="setDemoUser('april.sanchez', 'bpm')"
+                [ngClass]="username === 'april.sanchez' ? 'border-purple-600 bg-purple-50/70 text-purple-700 font-bold' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                class="p-2.5 rounded-lg border text-left flex items-center gap-2 transition-all">
+          <span class="material-symbols-outlined text-[18px]">volunteer_activism</span>
+          <div class="truncate">
+            <div class="font-bold truncate">Representante ONG</div>
+            <div class="text-[10px] text-slate-400 font-mono">april.sanchez</div>
+          </div>
         </button>
-        <button type="button" class="btn-demo auditor" (click)="setDemoUser('favio.riviera', 'bpm')"
-          title="Auditor / Directivo">
-          📊 Auditor / Directivo
+
+        <button type="button"
+                (click)="setDemoUser('favio.riviera', 'bpm')"
+                [ngClass]="username === 'favio.riviera' ? 'border-emerald-600 bg-emerald-50/70 text-emerald-700 font-bold' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                class="p-2.5 rounded-lg border text-left flex items-center gap-2 transition-all">
+          <span class="material-symbols-outlined text-[18px]">monitoring</span>
+          <div class="truncate">
+            <div class="font-bold truncate">Auditor / Directivo</div>
+            <div class="text-[10px] text-slate-400 font-mono">favio.riviera</div>
+          </div>
         </button>
       </div>
     </div>

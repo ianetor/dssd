@@ -1,60 +1,115 @@
-<div class="app-shell">
-  <header class="topbar">
-    <div class="topbar-left">
-      <a class="brand" [routerLink]="authService.isLoggedIn() ? '/' : '/login'">
-        <span class="brand-icon">🚨</span>
-        <span class="brand-name">RescueSync</span>
+<div class="min-h-screen bg-surface flex flex-col font-sans">
+  <!-- Tactical Command Topbar -->
+  <header class="fixed top-0 left-0 right-0 h-16 bg-[#0b192c] text-white shadow-md z-50 flex items-center justify-between px-4 sm:px-8">
+    <div class="flex items-center gap-6">
+      <!-- Brand & Tactical Logo -->
+      <a routerLink="/" class="flex items-center gap-3 group text-decoration-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-auto" viewBox="0 0 48 48" fill="none">
+          <rect width="44" height="44" x="2" y="2" rx="8" fill="#1E3E62" stroke="#38BDF8" stroke-width="1.5"/>
+          <path d="M24 10V38M10 24H38" stroke="#EA580C" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="24" cy="24" r="11" stroke="#38BDF8" stroke-width="2" stroke-dasharray="3 3"/>
+        </svg>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xl font-black tracking-tight text-white">Rescue<span class="text-[#ea580c]">Sync</span></span>
+          </div>
+          <span class="hidden sm:inline-block text-[10px] text-slate-400 font-medium tracking-wide">COORDINACIÓN DE DESASTRES</span>
+        </div>
       </a>
 
-      @if (authService.isLoggedIn()) {
-        <nav class="nav-links">
-          <a routerLink="/emergencias" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-            @switch (authService.userRole()) {
-              @case ('OPERADOR_MUNICIPAL') { Mis Emergencias }
-              @case ('COORDINADOR_REGIONAL') { Monitoreo Regional }
-              @case ('REPRESENTANTE_ONG') { Convocatorias Abiertas }
-              @default { Emergencias }
-            }
+      <!-- Role-Specific Navigation (Strictly visible only for the active logged-in role) -->
+      <nav *ngIf="authService.isLoggedIn()" class="hidden md:flex items-center gap-1">
+        <!-- Operador Municipal -->
+        <ng-container *ngIf="authService.userRole() === 'OPERADOR_MUNICIPAL'">
+          <a routerLink="/operador"
+             routerLinkActive="bg-[#1e3e62] text-white border-blue-400"
+             class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 bg-[#1e293b] border border-slate-700 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-orange-400">assignment_late</span>
+            <span>Declaración de Emergencias</span>
           </a>
+        </ng-container>
 
-          @if (authService.hasRole(['OPERADOR_MUNICIPAL', 'COORDINADOR_REGIONAL'])) {
-            <a routerLink="/nueva" routerLinkActive="active" class="btn-nav-action">
-              + Nueva Emergencia
-            </a>
-          }
-        </nav>
-      }
+        <!-- Centro Coordinador Regional -->
+        <ng-container *ngIf="authService.userRole() === 'COORDINADOR_REGIONAL'">
+          <a routerLink="/coordinador"
+             routerLinkActive="bg-[#1e3e62] text-white border-blue-400"
+             class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 bg-[#1e293b] border border-slate-700 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-cyan-400">inventory_2</span>
+            <span>Desglose y Convocatoria de Lotes</span>
+          </a>
+          <a routerLink="/emergencias"
+             routerLinkActive="bg-[#1e3e62] text-white border-blue-400"
+             class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">list_alt</span>
+            <span>Historial de Emergencias</span>
+          </a>
+        </ng-container>
+
+        <!-- Representante de ONG -->
+        <ng-container *ngIf="authService.userRole() === 'REPRESENTANTE_ONG'">
+          <a routerLink="/portal-ong"
+             routerLinkActive="bg-[#1e3e62] text-white border-blue-400"
+             class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 bg-[#1e293b] border border-slate-700 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-purple-400">volunteer_activism</span>
+            <span>Portal de Ofertas Humanitarias</span>
+          </a>
+        </ng-container>
+
+        <!-- Auditor / Directivo -->
+        <ng-container *ngIf="authService.userRole() === 'AUDITOR_DIRECTIVO'">
+          <a routerLink="/emergencias"
+             routerLinkActive="bg-[#1e3e62] text-white border-blue-400"
+             class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 bg-[#1e293b] border border-slate-700 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-emerald-400">monitoring</span>
+            <span>Auditoría de Incidentes</span>
+          </a>
+        </ng-container>
+      </nav>
     </div>
 
-    <div class="topbar-right">
-      @if (authService.isLoggedIn()) {
-        <div class="user-profile">
-          <div class="user-meta">
-            <span class="user-name">{{ authService.userFullName() }}</span>
-            @if (authService.entityName()) {
-              <span class="user-entity">{{ authService.entityName() }}</span>
-            }
+    <!-- Right Profile & Session Control -->
+    <div class="flex items-center gap-4">
+      <!-- User Active Session State -->
+      <div *ngIf="authService.isLoggedIn(); else noUserTpl" class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <div class="text-xs font-bold text-slate-100 flex items-center justify-end gap-1.5">
+            <span>{{ authService.userFullName() }}</span>
+            <span [ngClass]="{
+                    'bg-orange-500/20 text-orange-400 border-orange-500/40': authService.userRole() === 'OPERADOR_MUNICIPAL',
+                    'bg-blue-500/20 text-blue-400 border-blue-500/40': authService.userRole() === 'COORDINADOR_REGIONAL',
+                    'bg-purple-500/20 text-purple-400 border-purple-500/40': authService.userRole() === 'REPRESENTANTE_ONG',
+                    'bg-emerald-500/20 text-emerald-400 border-emerald-500/40': authService.userRole() === 'AUDITOR_DIRECTIVO'
+                  }"
+                  class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border uppercase">
+              {{ authService.userRole() }}
+            </span>
           </div>
-
-          <span
-            class="role-badge"
-            [class.badge-muni]="authService.userRole() === 'OPERADOR_MUNICIPAL'"
-            [class.badge-coord]="authService.userRole() === 'COORDINADOR_REGIONAL'"
-            [class.badge-ong]="authService.userRole() === 'REPRESENTANTE_ONG'"
-            [class.badge-auditor]="authService.userRole() === 'AUDITOR_DIRECTIVO'"
-          >
-            {{ authService.currentUser()?.rolDisplayName || authService.userRole() }}
-          </span>
-
-          <button type="button" class="btn-logout" (click)="logout()" title="Cerrar Sesión">
-            Salir
-          </button>
+          <div class="text-[10px] text-slate-400 font-mono">{{ authService.entityName() }}</div>
         </div>
-      }
+
+        <button type="button"
+                (click)="logout()"
+                title="Cerrar Sesión"
+                class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-red-950/70 hover:text-red-300 border border-slate-700 text-xs font-medium text-slate-300 transition-all flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">logout</span>
+          <span class="hidden sm:inline">Cerrar Sesión</span>
+        </button>
+      </div>
+
+      <ng-template #noUserTpl>
+        <div>
+          <a routerLink="/login"
+             class="px-3.5 py-1.5 rounded-lg bg-secondary hover:bg-slate-800 text-white text-xs font-bold shadow flex items-center gap-1.5 transition-all">
+            <span class="material-symbols-outlined text-[16px]">login</span>
+            <span>Acceder</span>
+          </a>
+        </div>
+      </ng-template>
     </div>
   </header>
 
-  <main class="content">
+  <!-- Main View Container -->
+  <main class="w-full pt-16 flex-1 bg-surface">
     <router-outlet />
   </main>
 </div>

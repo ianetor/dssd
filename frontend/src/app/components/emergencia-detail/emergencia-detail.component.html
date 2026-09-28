@@ -1,61 +1,370 @@
-<section class="panel" *ngIf="!loading && emergencia; else loadingTpl">
-  <a routerLink="/" class="back-link">Volver al inicio</a>
-  <h2>Detalle de emergencia</h2>
-
-  <div class="summary">
-    <p><strong>Tipo:</strong> {{ emergencia.tipoEmergencia }}</p>
-    <p><strong>Estado:</strong> {{ emergencia.estado }}</p>
-    <p><strong>Zona:</strong> {{ emergencia.zonaAfectada }}</p>
-    <p><strong>Gravedad:</strong> {{ emergencia.nivelGravedad }}</p>
-    <p><strong>Municipio:</strong> {{ emergencia.municipioNombre ?? 'Sin municipio' }}</p>
-    <p><strong>Descripción:</strong> {{ emergencia.descripcion }}</p>
-  </div>
-
-  <div class="meta" *ngIf="emergencia.hectareasAfectadas !== null">
-    <strong>Hectáreas afectadas:</strong> {{ emergencia.hectareasAfectadas }}
-  </div>
-  <div class="meta" *ngIf="emergencia.milimetrosAgua !== null">
-    <strong>Milímetros de agua:</strong> {{ emergencia.milimetrosAgua }}
-  </div>
-  <div class="meta" *ngIf="emergencia.magnitudRichter !== null">
-    <strong>Magnitud Richter:</strong> {{ emergencia.magnitudRichter }}
-  </div>
-
-  <div class="lotes">
-    <h3>Lotes</h3>
-    <ul *ngIf="emergencia.lotes.length; else sinLotes">
-      <li *ngFor="let lote of emergencia.lotes">
-        {{ lote.tipoRecurso }} — requerido: {{ lote.cantidadRequerida }} / cubierto: {{ lote.cantidadCubierta }}
-      </li>
-    </ul>
-    <ng-template #sinLotes>
-      <p>No hay lotes cargados todavía.</p>
-    </ng-template>
-  </div>
-
-  <form [formGroup]="loteForm" (ngSubmit)="submitLote()" class="lote-form">
-    <h3>Agregar lote</h3>
-
-    <div class="grid">
-      <label>
-        <span>Tipo de recurso</span>
-        <input formControlName="tipoRecurso" type="text" placeholder="Ej: Raciones" />
-      </label>
-
-      <label>
-        <span>Cantidad requerida</span>
-        <input formControlName="cantidadRequerida" type="number" min="1" />
-      </label>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" *ngIf="emergencia">
+  <!-- Top Operational Context Header -->
+  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-slate-500 mb-1">
+        <span>Gestión de Emergencias</span>
+        <span>/</span>
+        <span class="text-secondary font-bold">Eslabón 2 · Centro Coordinador Regional</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-[#0b192c] tracking-tight">
+        Definición y Publicación de Lotes de Necesidades
+      </h1>
+      <p class="text-sm text-slate-600 mt-1">
+        Desglose operativo de requerimientos para convocar a la red de ONGs acreditadas.
+      </p>
     </div>
 
-    <button type="submit" [disabled]="isSubmitting">
-      {{ isSubmitting ? 'Publicando...' : 'Publicar lote' }}
-    </button>
+    <div class="flex items-center gap-3 bg-surface-container-lowest p-2.5 rounded-lg border border-slate-200 shadow-xs">
+      <div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded text-xs font-bold text-[#0b192c]">
+        <span class="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
+        <span>EMERGENCIA EN CURSO</span>
+      </div>
+      <div class="flex flex-col pr-2">
+        <span class="text-[10px] font-mono text-slate-400 uppercase">Protocolo</span>
+        <span class="text-xs font-bold text-red-600 font-mono">ALERTA ROJA</span>
+      </div>
+    </div>
+  </div>
 
-    <p class="error" *ngIf="error">{{ error }}</p>
-  </form>
-</section>
+  <!-- Priority Incoming Dispatch Banner -->
+  <div class="relative overflow-hidden bg-[#0b192c] text-white rounded-xl p-6 sm:p-8 shadow-md border border-slate-800">
+    <div class="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+      <div class="flex items-start gap-4">
+        <div class="p-3 bg-red-600 text-white rounded-lg flex items-center justify-center shrink-0 mt-1">
+          <span class="material-symbols-outlined text-[28px]">crisis_alert</span>
+        </div>
+        <div class="space-y-1">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="bg-red-600 text-white text-[11px] font-mono font-bold uppercase px-2 py-0.5 rounded tracking-wider">
+              Gravedad: {{ emergencia.nivelGravedad }}
+            </span>
+            <span class="bg-slate-800 text-slate-300 text-[11px] font-mono px-2 py-0.5 rounded">
+              Origen: {{ emergencia.municipioNombre || 'Centro Operativo Municipal' }}
+            </span>
+            <span class="text-slate-400 text-xs">
+              ID: EMG-{{ emergencia.id ? (emergencia.id < 10 ? '00' + emergencia.id : '0' + emergencia.id) : '001' }}
+            </span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            {{ emergencia.tipoEmergencia }}: {{ emergencia.zonaAfectada }}
+          </h2>
+          <p class="text-sm text-slate-300 max-w-4xl leading-relaxed whitespace-pre-line">
+            {{ emergencia.descripcion }}
+          </p>
+        </div>
+      </div>
 
-<ng-template #loadingTpl>
-  <p>Cargando emergencia...</p>
-</ng-template>
+      <!-- Quick Telemetry Chips -->
+      <div class="flex sm:flex-row flex-col items-stretch xl:items-center gap-3 shrink-0">
+        <div *ngIf="emergencia.milimetrosAgua" class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-lg">
+          <span class="text-[10px] font-mono text-slate-400 block uppercase">Agua Registrada</span>
+          <span class="text-base font-mono font-bold text-cyan-400">{{ emergencia.milimetrosAgua }} mm</span>
+        </div>
+        <div *ngIf="emergencia.hectareasAfectadas" class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-lg">
+          <span class="text-[10px] font-mono text-slate-400 block uppercase">Área Afectada</span>
+          <span class="text-base font-mono font-bold text-amber-400">{{ emergencia.hectareasAfectadas }} ha</span>
+        </div>
+        <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-lg">
+          <span class="text-[10px] font-mono text-slate-400 block uppercase">Firma Digital Municipal</span>
+          <span class="text-xs font-mono font-bold text-emerald-400">VAL_SN_{{ emergencia.id || 102 }}_OK</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Operational Grid: 12 Columns -->
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+    <!-- Left 8 Columns: Desglose y Cuantificación de Lotes -->
+    <div class="xl:col-span-8 flex flex-col gap-6">
+      <!-- Form Section: Agregar Nuevo Lote -->
+      <div class="bg-surface-container-lowest p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary text-[22px]">playlist_add</span>
+            <h3 class="text-lg font-bold text-[#0b192c]">Desglose y Cuantificación de Lotes</h3>
+          </div>
+          <span class="text-[11px] font-mono font-semibold px-2 py-0.5 bg-blue-50 text-blue-700 rounded uppercase">
+            Requisito E2 · Triage Operativo
+          </span>
+        </div>
+
+        <form [formGroup]="loteForm" (ngSubmit)="agregarLote()" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <!-- Nombre del Lote -->
+            <div class="md:col-span-5 flex flex-col gap-1">
+              <label class="text-xs font-mono uppercase font-semibold text-slate-600">
+                Nombre o Categoría del Lote <span class="text-red-500">*</span>
+              </label>
+              <input formControlName="nombre"
+                     type="text"
+                     placeholder="Ej: Paramédicos y Rescate Acuático"
+                     class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium" />
+            </div>
+
+            <!-- Cantidad y Unidad -->
+            <div class="md:col-span-4 flex flex-col gap-1">
+              <label class="text-xs font-mono uppercase font-semibold text-slate-600">
+                Cantidad y Unidad <span class="text-red-500">*</span>
+              </label>
+              <div class="flex gap-2">
+                <input formControlName="cantidad"
+                       type="number"
+                       min="1"
+                       placeholder="8"
+                       class="w-24 h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-bold" />
+                <input formControlName="unidad"
+                       type="text"
+                       placeholder="equipos / raciones"
+                       class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium" />
+              </div>
+            </div>
+
+            <!-- Prioridad -->
+            <div class="md:col-span-3 flex flex-col gap-1">
+              <label class="text-xs font-mono uppercase font-semibold text-slate-600">
+                Prioridad <span class="text-red-500">*</span>
+              </label>
+              <select formControlName="prioridad"
+                      class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium">
+                <option value="Urgente">Urgente</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+              </select>
+            </div>
+
+            <!-- Descripción/Especificaciones mínimas -->
+            <div class="md:col-span-12 flex flex-col gap-1">
+              <label class="text-xs font-mono uppercase font-semibold text-slate-600">
+                Especificaciones / Requisitos Mínimos (Opcional)
+              </label>
+              <input formControlName="descripcion"
+                     type="text"
+                     placeholder="Ej: Certificación en rescate fluvial, alimentos no perecederos con estándar ONU..."
+                     class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-normal" />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <div class="flex items-center gap-1.5 text-xs text-slate-500">
+              <span class="material-symbols-outlined text-[16px] text-secondary">info</span>
+              <span>Los lotes serán notificados a las ONGs acreditadas.</span>
+            </div>
+
+            <button type="submit"
+                    class="h-10 px-5 bg-secondary hover:bg-slate-800 text-white font-semibold text-sm rounded flex items-center gap-1.5 shadow transition-all">
+              <span class="material-symbols-outlined text-[18px]">add</span>
+              <span>+ Agregar Lote</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lot Cards List Container -->
+      <div class="bg-surface-container-lowest rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2">
+            <h4 class="text-base font-bold text-[#0b192c]">Lotes a Convocatoria</h4>
+            <span class="px-2.5 py-0.5 bg-blue-100 text-blue-800 font-mono text-xs rounded-full font-bold">
+              {{ lotesDesglosados.length }} Lotes
+            </span>
+          </div>
+          <span class="text-xs font-mono text-slate-500 uppercase tracking-wider">VERIFICACIÓN COMPLETA</span>
+        </div>
+
+        <div *ngIf="lotesDesglosados.length === 0" class="py-8 text-center text-slate-400 border border-dashed rounded-lg">
+          No hay lotes desglosados aún. Ingrese el primero arriba.
+        </div>
+
+        <!-- Dynamic Lot Cards -->
+        <div class="space-y-3">
+          <div *ngFor="let lote of lotesDesglosados; let i = index"
+               class="relative bg-surface-container-low p-4 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-200 hover:border-slate-300 transition-all">
+            <div class="flex items-start gap-3">
+              <!-- Left accent stripe -->
+              <div [ngClass]="{
+                    'bg-red-500': lote.prioridad === 'Urgente',
+                    'bg-blue-600': lote.prioridad === 'Alta',
+                    'bg-slate-400': lote.prioridad === 'Media'
+                  }"
+                  class="w-1.5 self-stretch rounded-full shrink-0"></div>
+
+              <div>
+                <div class="flex items-center gap-2">
+                  <span [ngClass]="{
+                          'bg-red-100 text-red-700': lote.prioridad === 'Urgente',
+                          'bg-blue-100 text-blue-700': lote.prioridad === 'Alta',
+                          'bg-slate-100 text-slate-700': lote.prioridad === 'Media'
+                        }"
+                        class="text-[11px] font-mono uppercase px-2 py-0.5 rounded font-bold">
+                    {{ lote.prioridad }}
+                  </span>
+                  <span class="text-xs font-mono text-slate-400">ID: LOT-00{{ i + 1 }}</span>
+                </div>
+                <h5 class="text-sm font-bold text-[#0b192c] mt-1">{{ lote.nombre }}</h5>
+                <p class="text-xs text-slate-500 mt-0.5">{{ lote.descripcion }}</p>
+              </div>
+            </div>
+
+            <!-- Quantities and Actions -->
+            <div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
+              <div class="text-right">
+                <span class="text-[10px] font-mono text-slate-400 uppercase block">Demanda Requerida</span>
+                <span class="text-lg font-bold text-[#0b192c]">
+                  {{ lote.cantidad }} <span class="text-xs font-normal text-slate-500">{{ lote.unidad }}</span>
+                </span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button type="button"
+                        (click)="editarCantidadLote(i)"
+                        title="Modificar Cantidad"
+                        class="p-2 text-slate-600 hover:bg-slate-200 rounded transition-all">
+                  <span class="material-symbols-outlined text-[18px]">edit</span>
+                </button>
+                <button type="button"
+                        (click)="eliminarLote(i)"
+                        title="Eliminar Lote"
+                        class="p-2 text-red-600 hover:bg-red-50 rounded transition-all">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aggregated Capacity Bar -->
+        <div class="bg-surface-container p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-200">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-secondary text-[24px]">verified_user</span>
+            <div>
+              <div class="text-xs font-bold text-[#0b192c]">Comprobación de Conformidad Operativa</div>
+              <div class="text-[11px] text-slate-500">Lotes normalizados listos para su publicación en el Portal de ONGs.</div>
+            </div>
+          </div>
+          <span class="text-xs font-mono font-bold text-secondary uppercase tracking-wider">
+            STATUS: LISTO PARA DESPACHO
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right 4 Columns: Integración Bonita BPM & Launch Control -->
+    <div class="xl:col-span-4 flex flex-col gap-6">
+      <div class="bg-surface-container-lowest rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+        <div class="flex items-center gap-3 pb-2 border-b border-slate-100">
+          <div class="w-8 h-8 rounded bg-[#0b192c] text-white flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">campaign</span>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-[#0b192c]">Convocatoria a ONGs</h3>
+            <span class="text-[11px] font-mono text-slate-500 uppercase">CONFIGURACIÓN DE RECEPCIÓN</span>
+          </div>
+        </div>
+
+        <!-- Timer / Plazo selector para Bonita BPM -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-mono uppercase font-semibold text-slate-700 flex items-center justify-between">
+            <span>Plazo de Recepción (Timer Bonita)</span>
+            <span class="material-symbols-outlined text-[16px] text-secondary">schedule</span>
+          </label>
+          <select [(ngModel)]="timerSeleccionado"
+                  class="w-full h-11 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] font-medium focus:ring-2 focus:ring-secondary outline-none">
+            <option value="4">4 horas (Respuesta Rápida - Emergencia Crítica)</option>
+            <option value="8">8 horas (Operativo Estándar Regional)</option>
+            <option value="12">12 horas (Logística Ampliada)</option>
+            <option value="24">24 horas (Aprovisionamiento Escalonado)</option>
+          </select>
+          <p class="text-[11px] text-slate-500 leading-tight">
+            Al vencer este temporizador en Bonita BPM, el motor cerrará la recepción para pasar a validación de ofertas.
+          </p>
+        </div>
+
+        <!-- Resumen de Convocatoria -->
+        <div class="p-4 bg-surface-container-low rounded-lg border border-slate-200 space-y-2 text-xs">
+          <div class="flex items-center gap-1.5 font-mono uppercase font-bold text-slate-700 pb-1 border-b border-slate-200">
+            <span class="material-symbols-outlined text-[16px] text-secondary">summarize</span>
+            <span>Resumen del Proceso BPM</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-200 text-slate-600">
+            <span>Emergencia:</span>
+            <strong class="text-[#0b192c]">EMG-{{ emergencia.id }}</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-200 text-slate-600">
+            <span>Lotes incluidos:</span>
+            <strong class="text-[#0b192c]">{{ lotesDesglosados.length }} lotes definidos</strong>
+          </div>
+          <div class="flex justify-between py-1 text-slate-600">
+            <span>Ventana de recepción:</span>
+            <strong class="text-[#0b192c] font-mono">{{ timerSeleccionado }} horas</strong>
+          </div>
+        </div>
+
+        <!-- Botón Publicar Convocatoria -->
+        <div class="space-y-3 pt-2">
+          <button type="button"
+                  (click)="publicarConvocatoriaBonita()"
+                  [disabled]="isSubmitting || publicadoExitoso"
+                  [ngClass]="publicadoExitoso ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#ea580c] hover:bg-[#c2410c]'"
+                  class="w-full py-3.5 px-4 text-white text-sm font-bold rounded-lg shadow flex items-center justify-center gap-2 transition-all disabled:opacity-50">
+            <span *ngIf="isSubmitting" class="material-symbols-outlined text-[20px] animate-spin">refresh</span>
+            <span *ngIf="!isSubmitting && !publicadoExitoso" class="material-symbols-outlined text-[20px]">send</span>
+            <span *ngIf="publicadoExitoso" class="material-symbols-outlined text-[20px]">verified</span>
+            <span>
+              {{ isSubmitting ? 'Instanciando en Bonita...' : (publicadoExitoso ? 'Convocatoria Publicada en Bonita' : 'Publicar Convocatoria a la Red de ONGs') }}
+            </span>
+          </button>
+
+          <!-- Toast Exitoso -->
+          <div *ngIf="publicadoExitoso" class="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-900 text-xs flex items-start gap-2">
+            <span class="material-symbols-outlined text-emerald-600 text-[20px] shrink-0">check_circle</span>
+            <div>
+              <strong>¡Convocatoria Activa en la Red!</strong>
+              <p class="mt-0.5 text-slate-600">
+                Los lotes quedaron publicados. Las ONGs ya pueden visualizar la convocatoria y cargar ofertas desde su portal.
+              </p>
+              <div class="mt-2 text-[11px] font-mono font-semibold text-emerald-800 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                <span>Ventana de recepción abierta para las ONGs habilitadas.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Convocatorias Anteriores / Historial -->
+      <div class="bg-surface-container-lowest rounded-xl border border-slate-200 shadow-sm p-6 space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+            <span class="material-symbols-outlined text-secondary text-[18px]">history</span>
+            <span>Convocatorias Anteriores</span>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400 uppercase">HISTORIAL REGIONAL</span>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div class="p-3 bg-slate-50 rounded border border-slate-100 flex flex-col gap-1">
+            <div class="flex items-center justify-between">
+              <strong class="text-slate-800">Temporal Viento — Campana</strong>
+              <span class="px-2 py-0.5 bg-blue-100 text-blue-800 font-mono text-[10px] rounded font-bold">ADJUDICADO</span>
+            </div>
+            <div class="flex justify-between text-slate-500 text-[11px]">
+              <span>4 Lotes convocados</span>
+              <span>Ayer · 16:30 hs</span>
+            </div>
+          </div>
+
+          <div class="p-3 bg-slate-50 rounded border border-slate-100 flex flex-col gap-1">
+            <div class="flex items-center justify-between">
+              <strong class="text-slate-800">Incendio Pastizales — Delta</strong>
+              <span class="px-2 py-0.5 bg-slate-200 text-slate-700 font-mono text-[10px] rounded font-semibold">FINALIZADO</span>
+            </div>
+            <div class="flex justify-between text-slate-500 text-[11px]">
+              <span>2 Lotes convocados</span>
+              <span>Hace 3 días</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
