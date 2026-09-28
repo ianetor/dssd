@@ -7,7 +7,10 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.*;
 
@@ -23,8 +26,22 @@ public class BonitaService {
     @Value("${BONITA_PASSWORD}")
     private String password;
 
+    private final RestClient restClient;
+
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private volatile String jsessionId;
+
+    public BonitaService(
+            @Value("${BONITA_URL}") String bonitaUrl,
+            @Value("${BONITA_USERNAME}") String username,
+            @Value("${BONITA_PASSWORD}") String password) {
+        this.restClient = RestClient.builder().baseUrl(bonitaUrl).build();
+        this.bonitaUrl = bonitaUrl;
+        this.username = username;
+        this.password = password;
+    }
 
     // 1. Iniciar sesión y obtener cookies + token
     private HttpHeaders login() {
@@ -42,7 +59,6 @@ public class BonitaService {
         ResponseEntity<String> response = restTemplate.postForEntity(loginUrl, request, String.class);
 
         List<String> cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
-        String jsessionId = "";
         String apiToken = "";
 
         if (cookies != null) {
@@ -124,4 +140,89 @@ public class BonitaService {
 
         return response.getBody(); // Retorna el JSON con el ID de la instancia creada
     }
+
+    public String listProcesses() {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("p", "0");
+        params.put("c", "100");
+        return get("/API/bpm/process", params);
+    }
+
+    public String listPendingTasks() {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("p", "0");
+        params.put("c", "100");
+        params.put("f", "state=ready,state=claimed,state=started");
+        return get("/API/bpm/task", params);
+    }
+
+    public String listUsers() {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("p", "0");
+        params.put("c", "100");
+        return get("/API/identity/user", params);
+    }
+
+    public Map<String, Object> healthStatus() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("bonitaUrl", this.bonitaUrl);
+        result.put("bonitaUsername", this.username);
+        result.put("reachable", false);
+        result.put("loggedIn", false);
+        try {
+            login();
+            result.put("reachable", true);
+            result.put("loggedIn", true);
+        } catch (HttpClientErrorException ex) {
+            result.put("reachable", true);
+            result.put("error", ex.getMessage());
+        } catch (Exception ex) {
+            result.put("reachable", false);
+            result.put("error", ex.getMessage());
+        }
+        return result;
+    }
+
+    private String get(String path, Map<String, String> queryParams) {
+        return execute(() -> restClient.get()
+                .uri(buildUri(path, queryParams))
+                .cookie("JSESSIONID", requireSession())
+                .retrieve()
+                .body(String.class));
+    }
+
+    private String post(String path, String body) {
+        return execute(() -> restClient.post()
+                .uri(path)
+                .contentType(MediaType.APPLICATION_JSON)
+                .cookie("JSESSIONID", requireSession())
+                .body(body)
+                .retrieve()
+                .body(String.class));
+    }
+
+    public String buildUri(String path, Map<String, String> queryParams) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(path);
+        if (queryParams != null) {
+            queryParams.forEach(builder::queryParam);
+        }
+        return builder.toUriString();
+    }
+
+    public String requireSession() {
+        if (this.jsessionId == null) {
+            login();
+        }
+        return this.jsessionId;
+    }
+
+    private String execute(java.util.function.Supplier<String> request) {
+        try {
+            return request.get();
+        } catch (HttpClientErrorException.Unauthorized ex) {
+            login();
+            return request.get();
+        }
+    }
+
 }

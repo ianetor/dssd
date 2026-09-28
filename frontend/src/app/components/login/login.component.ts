@@ -34,9 +34,9 @@ export class LoginComponent {
         this.isLoading = false;
         // Redirigir según el rol
         if (usuario.rol === 'OPERADOR_MUNICIPAL') {
-          this.router.navigate(['/emergencias']);
+          this.router.navigate(['/']);
         } else if (usuario.rol === 'COORDINADOR_REGIONAL') {
-          this.router.navigate(['/emergencias']);
+          this.router.navigate(['/']);
         } else {
           this.router.navigate(['/']);
         }
