@@ -1,29 +1,54 @@
-<section class="panel">
-  <a routerLink="/" class="back-link">Volver al inicio</a>
-  <div class="header-row">
-    <h2>Emergencias</h2>
-    <a routerLink="/nueva" class="primary-btn">+ Nueva emergencia</a>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-mono uppercase text-slate-500 mb-1">
+        <a routerLink="/" class="hover:underline">Inicio</a>
+        <span>/</span>
+        <span class="text-secondary font-bold">Listado General</span>
+      </div>
+      <h1 class="text-2xl font-bold text-[#0b192c]">Registro Integral de Emergencias</h1>
+    </div>
+
+    <a routerLink="/nueva"
+       class="px-4 py-2 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold flex items-center gap-1.5 shadow">
+      <span class="material-symbols-outlined text-[16px]">add</span>
+      <span>Nueva Emergencia</span>
+    </a>
   </div>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
-
-  <div *ngIf="loading" class="loading">Cargando...</div>
-
-  <div class="cards" *ngIf="!loading">
-    <article class="card" *ngFor="let emergencia of emergencias">
-      <div class="card-head">
-        <strong>{{ emergencia.tipoEmergencia }}</strong>
-        <span class="badge">{{ emergencia.estado }}</span>
-      </div>
-
-      <p><strong>Zona:</strong> {{ emergencia.zonaAfectada }}</p>
-      <p><strong>Gravedad:</strong> {{ emergencia.nivelGravedad }}</p>
-      <p><strong>Municipio:</strong> {{ emergencia.municipioNombre ?? 'Sin municipio' }}</p>
-      <p><strong>Descripción:</strong> {{ emergencia.descripcion }}</p>
-
-      <div class="actions">
-        <a [routerLink]="['/emergencias', emergencia.id]">Ver detalle</a>
-      </div>
-    </article>
+  <div *ngIf="loading" class="py-12 text-center text-slate-500">
+    <span class="material-symbols-outlined text-[36px] animate-spin text-secondary mb-2">refresh</span>
+    <p class="text-sm">Cargando emergencias...</p>
   </div>
-</section>
+
+  <div *ngIf="!loading && emergencias.length === 0" class="py-12 text-center text-slate-400 border border-dashed rounded-lg">
+    No hay emergencias registradas actualmente.
+  </div>
+
+  <div *ngIf="!loading && emergencias.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div *ngFor="let emg of emergencias"
+         class="bg-surface-container-lowest rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-mono font-bold text-slate-400">#EMG-{{ emg.id }}</span>
+          <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800">
+            {{ emg.estado || 'REGISTRADA' }}
+          </span>
+        </div>
+        <h3 class="text-base font-bold text-[#0b192c]">{{ emg.tipoEmergencia }}</h3>
+        <p class="text-xs text-slate-500 font-medium mt-0.5">{{ emg.zonaAfectada }}</p>
+        <p class="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">{{ emg.descripcion }}</p>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+        <span class="font-mono text-slate-500">
+          Gravedad: <strong class="text-[#0b192c]">{{ emg.nivelGravedad }}</strong>
+        </span>
+        <a [routerLink]="['/emergencias', emg.id]"
+           class="px-3 py-1.5 rounded bg-secondary hover:bg-slate-800 text-white font-bold transition-all">
+          Ver / Lotes
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

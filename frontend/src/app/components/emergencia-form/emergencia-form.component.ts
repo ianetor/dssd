@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { EmergenciaService } from '../../services/emergencia.service';
+import { Emergencia } from '../../models/emergencia.model';
 import { AuthService } from '../../services/auth.service';
 import { EmergenciaPayload } from '../../models/emergencia.model';
 
@@ -17,29 +18,56 @@ export class EmergenciaFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly emergenciaService = inject(EmergenciaService);
   private readonly router = inject(Router);
+  private readonly cd = inject(ChangeDetectorRef);
   private readonly authService = inject(AuthService);
 
+
+  emergencias: Emergencia[] = [];
   isSubmitting = false;
+  isLoadingList = false;
   errorMessage = '';
+  successMessage = '';
+  filtroEstado = 'TODAS';
+
+  selectedEmergencia?: Emergencia;
+  showModal = false;
 
   form = this.fb.group({
-    tipoEmergencia: ['INCENDIO', Validators.required],
-    nivelGravedad: ['MEDIA', Validators.required],
+    tipoEmergencia: ['INUNDACION', Validators.required],
+    nivelGravedad: ['ALTA', Validators.required],
+    municipioId: [null as number | null, Validators.required],
     zonaAfectada: ['', Validators.required],
     descripcion: ['', Validators.required],
     hectareasAfectadas: [null as number | null],
     milimetrosAgua: [null as number | null],
     magnitudRichter: [null as number | null],
+    responsableNombre: ['Comandante Roberto Varela'],
+    responsableTelefono: ['+54 336 442-9901'],
   });
 
-  get tipoActual(): string {
-    return this.form.get('tipoEmergencia')?.value ?? 'INCENDIO';
+  ngOnInit(): void {
+    this.cargarEmergencias();
   }
+
+  get tipoActual(): string {
+    return this.form.get('tipoEmergencia')?.value ?? 'INUNDACION';
+  }
+
+  get emergenciasFiltradas(): Emergencia[] {
+    if (this.filtroEstado === 'TODAS') {
+      return this.emergencias;
+    }
+    return this.emergencias.filter(
+      (e) => e.estado?.toUpperCase() === this.filtroEstado.toUpperCase()
+    );
+  }
+
+ 
 
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.errorMessage = 'Completá los campos obligatorios.';
+      this.errorMessage = 'Por favor complete todos los campos obligatorios (*).';
       return;
     }
 
@@ -65,16 +93,44 @@ export class EmergenciaFormComponent {
 
     this.isSubmitting = true;
     this.errorMessage = '';
+    this.successMessage = '';
 
     this.emergenciaService.crear(payload).subscribe({
-      next: () => {
+      next: (creada) => {
         this.isSubmitting = false;
-        this.router.navigateByUrl('/');
+        this.successMessage = `Declaración registrada con éxito. Se instanció el proceso en Bonita BPM para la emergencia #${creada.id ?? ''}.`;
+        
+        // Agregar a la lista localmente
+        this.emergencias.unshift(creada);
+
+        // Reset parcial conservando municipio y responsable
+        this.form.patchValue({
+          zonaAfectada: '',
+          descripcion: '',
+          hectareasAfectadas: null,
+          milimetrosAgua: null,
+          magnitudRichter: null,
+        });
+
+        this.cd.detectChanges();
       },
       error: () => {
         this.isSubmitting = false;
-        this.errorMessage = 'No se pudo registrar la emergencia.';
+        this.errorMessage = 'No se pudo registrar la emergencia en el servidor.';
+        this.cd.detectChanges();
       },
     });
   }
+  
+  abrirDetalle(emergencia: Emergencia): void {
+    this.selectedEmergencia = emergencia;
+    this.showModal = true;
+  }
+
+  cerrarDetalle(): void {
+    this.showModal = false;
+    this.selectedEmergencia = undefined;
+  }
+
+
 }

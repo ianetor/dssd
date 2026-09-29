@@ -1,0 +1,340 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- Top Role Header & Breadcrumb -->
+  <section class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-slate-500 mb-1">
+        <span>Red Solidaria</span>
+        <span>/</span>
+        <span class="text-secondary font-bold">Eslabón 3 · Portal de Organizaciones de Ayuda (ONGs)</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-[#0b192c] tracking-tight">
+        Convocatoria de Ayuda Humanitaria y Carga de Ofertas
+      </h1>
+      <p class="text-sm text-slate-600 mt-1">
+        Consorcios, ofertas parciales y gestión de versiones de recursos comprometidos.
+      </p>
+    </div>
+
+    <!-- Active Entity Badge -->
+    <div class="flex items-center gap-3 bg-surface-container-low p-3 rounded-lg border border-slate-200">
+      <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold">
+        <span class="material-symbols-outlined text-[24px]">volunteer_activism</span>
+      </div>
+      <div>
+        <div class="text-xs uppercase font-mono font-bold text-slate-500">Organización Acreditada</div>
+        <div class="text-sm font-bold text-[#0b192c]">Cruz Roja Argentina</div>
+        <div class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Habilitación Nacional Vigente
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hero Convocatoria Activa con Reloj de Bonita -->
+  <div class="bg-surface-container-lowest rounded-xl p-6 sm:p-8 shadow-sm border-l-4 border-secondary border-y border-r border-slate-200 space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-blue-600 text-white uppercase font-bold tracking-wider">
+            Convocatoria Activa
+          </span>
+          <span class="text-xs font-mono text-slate-500 font-semibold">Protocolo #EMG-2024-001</span>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold text-[#0b192c]">
+          Inundación Ribereña — Municipio de San Nicolás
+        </h2>
+        <p class="text-sm text-slate-600 max-w-3xl leading-relaxed">
+          Crecida del río con familias anegadas. Se solicitan refuerzos y recursos para centros de evacuados, asistencia médica in situ y provisiones de primera necesidad.
+        </p>
+      </div>
+
+      <!-- Bonita Timer Countdown Clock -->
+      <div class="bg-surface-container-low p-4 rounded-xl border border-slate-200 flex flex-col items-start md:items-end gap-1 shrink-0">
+        <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
+          Ventana Temporal (Timer Bonita BPM)
+        </span>
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+          <span class="text-2xl font-mono font-extrabold text-red-600">
+            {{ timerString }}
+          </span>
+        </div>
+        <span class="text-[11px] text-slate-500">Plazo estricto para recepción de ofertas</span>
+      </div>
+    </div>
+
+    <!-- Resumen de Lotes Solicitados (Clickable Cards) -->
+    <div>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-mono uppercase font-bold text-slate-700">
+          Lotes Requeridos por Coordinación (Seleccione para postular):
+        </h3>
+        <span class="text-xs text-slate-500">Haga clic en una tarjeta para cargar la oferta</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div *ngFor="let lote of lotesDisponibles"
+             (click)="seleccionarLoteCard(lote)"
+             [ngClass]="form.get('loteNombre')?.value === lote.nombre ? 'ring-2 ring-secondary bg-blue-50/60 border-blue-300' : 'bg-surface-container-low hover:bg-slate-100 border-slate-200'"
+             class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-secondary text-white">
+                {{ lote.id | uppercase }}
+              </span>
+              <span class="material-symbols-outlined text-secondary text-[22px]">{{ lote.icono }}</span>
+            </div>
+            <div class="font-bold text-sm text-[#0b192c]">{{ lote.nombre }}</div>
+            <p class="text-xs text-slate-500 mt-1">{{ lote.descripcion }}</p>
+          </div>
+          <div class="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-mono">Demanda:</span>
+            <span class="font-mono font-bold text-slate-800">{{ lote.demanda }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario Básico de Carga de Oferta / Edición -->
+  <div id="seccion-formulario-oferta" class="bg-surface-container-lowest rounded-xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-2">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary text-[24px]">post_add</span>
+          <h2 class="text-xl font-bold text-[#0b192c]">
+            {{ editandoId ? 'Rectificar Oferta de Ayuda (Versión 2)' : 'Cargar Oferta de Ayuda Humanitaria' }}
+          </h2>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+          {{ editandoId ? 'Modificando recursos comprometidos dentro del plazo permitido (Gestión de Versiones).' : 'Ingrese los recursos y personal que su organización pondrá a disposición.' }}
+        </p>
+      </div>
+
+      <span *ngIf="editandoId" class="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 text-xs font-mono font-bold rounded">
+        EDITANDO {{ editandoId }}
+      </span>
+    </div>
+
+    <!-- Feedback Message -->
+    <div *ngIf="feedbackMensaje" class="p-4 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 flex items-start gap-3">
+      <span class="material-symbols-outlined text-emerald-600 text-[24px] shrink-0">task_alt</span>
+      <div>
+        <strong class="text-sm font-bold block">{{ feedbackTitulo }}</strong>
+        <p class="text-xs mt-0.5 text-emerald-800">{{ feedbackMensaje }}</p>
+      </div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Selector de Lote -->
+        <div>
+          <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+            Lote al que se postula <span class="text-red-500">*</span>
+          </label>
+          <select formControlName="loteNombre"
+                  class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-secondary outline-none font-medium">
+            <option *ngFor="let l of lotesDisponibles" [value]="l.nombre">
+              {{ l.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Cantidad ofrecida (con unidad dinámica) -->
+        <div>
+          <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+            Cantidad a Aportar (Oferta Parcial o Total) <span class="text-red-500">*</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <input formControlName="cantidadOfrecida"
+                   type="number"
+                   min="1"
+                   placeholder="Ej: 4"
+                   class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-secondary outline-none font-bold" />
+            <span class="px-3 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-700 whitespace-nowrap">
+              {{ unidadActual }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Modalidad: Individual vs Consorcio -->
+        <div>
+          <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+            Modalidad de Presentación <span class="text-red-500">*</span>
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <label class="flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-all"
+                   [ngClass]="!esConsorcio ? 'bg-blue-50/80 border-secondary' : 'bg-surface-container-low border-slate-200'">
+              <input type="radio"
+                     value="Individual"
+                     formControlName="modalidad"
+                     class="w-4 h-4 text-secondary accent-secondary" />
+              <div class="text-xs font-bold text-[#0b192c]">Oferta Individual</div>
+            </label>
+
+            <label class="flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-all"
+                   [ngClass]="esConsorcio ? 'bg-blue-50/80 border-secondary' : 'bg-surface-container-low border-slate-200'">
+              <input type="radio"
+                     value="Consorcio"
+                     formControlName="modalidad"
+                     class="w-4 h-4 text-secondary accent-secondary" />
+              <div class="text-xs font-bold text-[#0b192c]">Oferta Conjunta (Consorcio)</div>
+            </label>
+          </div>
+
+          <!-- Campo para ONG Asociada si es Consorcio -->
+          <div *ngIf="esConsorcio" class="mt-3 p-3 bg-blue-50/60 border border-blue-200 rounded-lg">
+            <label class="block text-[11px] font-mono uppercase text-blue-900 font-semibold mb-1">
+              Nombre de la ONG o Entidad Asociada <span class="text-red-500">*</span>
+            </label>
+            <input formControlName="ongAsociada"
+                   type="text"
+                   placeholder="Ej: Cáritas Regional, Cascos Blancos, Bomberos Voluntarios"
+                   class="w-full bg-white border border-blue-300 text-[#0b192c] text-xs rounded-lg p-2 focus:ring-2 focus:ring-secondary outline-none" />
+          </div>
+        </div>
+
+        <!-- Tiempo Estimado de Llegada / Disponibilidad -->
+        <div>
+          <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+            Tiempo Estimado de Despliegue <span class="text-red-500">*</span>
+          </label>
+          <select formControlName="tiempoLlegada"
+                  class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-secondary outline-none font-medium">
+            <option value="Inmediata (menos de 1 hora)">Inmediata (menos de 1 hora)</option>
+            <option value="2 horas tras adjudicación">2 horas tras adjudicación</option>
+            <option value="4 horas tras adjudicación">4 horas tras adjudicación</option>
+            <option value="12 horas tras adjudicación">12 horas tras adjudicación</option>
+            <option value="24 horas tras adjudicación">24 horas tras adjudicación</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Observaciones / Recursos Detallados -->
+      <div>
+        <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+          Observaciones y Detalle de Recursos Comprometidos
+        </label>
+        <textarea formControlName="observaciones"
+                  rows="3"
+                  placeholder="Detalle equipamiento, vehículos de traslado (ej. gomones, ambulancias 4x4), logística o condiciones especiales de entrega..."
+                  class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-secondary outline-none resize-none"></textarea>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+        <div class="text-xs text-slate-500 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-secondary text-[18px]">check_circle</span>
+          <span>La oferta se persiste en la BD local de la app y podrá ser modificada mientras el reloj esté activo.</span>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <button *ngIf="editandoId"
+                  type="button"
+                  (click)="cancelarEdicion()"
+                  class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-semibold transition-all w-1/2 sm:w-auto">
+            Cancelar Edición
+          </button>
+
+          <button *ngIf="!editandoId"
+                  type="button"
+                  (click)="form.reset({ loteNombre: 'Lote 1: Personal Sanitario', modalidad: 'Individual' })"
+                  class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-semibold transition-all w-1/2 sm:w-auto">
+            Limpiar
+          </button>
+
+          <button type="submit"
+                  class="px-6 py-2.5 rounded-lg bg-secondary hover:bg-slate-800 text-white text-sm font-bold shadow transition-all flex items-center justify-center gap-2 w-1/2 sm:w-auto">
+            <span class="material-symbols-outlined text-[18px]">send</span>
+            <span>{{ editandoId ? 'Guardar Rectificación (v2)' : 'Enviar Oferta' }}</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabla de Seguimiento: Mis Ofertas Enviadas -->
+  <div class="bg-surface-container-lowest rounded-xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+      <div>
+        <h3 class="text-xl font-bold text-[#0b192c]">Mis Ofertas Presentadas</h3>
+        <p class="text-xs text-slate-500">Postulaciones remitidas para la contingencia actual.</p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono uppercase text-slate-500 font-semibold">Total Postuladas:</span>
+        <span class="px-2.5 py-0.5 bg-blue-100 text-blue-800 font-mono text-xs rounded-full font-bold">
+          {{ ofertas.length }} ofertas
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="ofertas.length === 0" class="py-8 text-center text-slate-400 border border-dashed rounded-lg">
+      No se han registrado ofertas de ayuda todavía.
+    </div>
+
+    <div *ngIf="ofertas.length > 0" class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-[#0b192c] text-white text-xs font-mono uppercase tracking-wider">
+            <th class="py-3 px-4 rounded-l">Lote Requerido</th>
+            <th class="py-3 px-4">Cantidad Ofrecida</th>
+            <th class="py-3 px-4">Modalidad</th>
+            <th class="py-3 px-4">Disponibilidad</th>
+            <th class="py-3 px-4">Fecha y Hora</th>
+            <th class="py-3 px-4 text-center">Estado</th>
+            <th class="py-3 px-4 text-right rounded-r">Acciones (Gestión de Versiones)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          <tr *ngFor="let ofr of ofertas" class="hover:bg-slate-50 transition-colors">
+            <td class="py-3.5 px-4 font-bold text-[#0b192c]">
+              {{ ofr.loteNombre }}
+            </td>
+            <td class="py-3.5 px-4 font-mono font-bold text-slate-800">
+              {{ ofr.cantidadOfrecida }} <span class="text-xs font-normal text-slate-500">{{ ofr.unidad }}</span>
+            </td>
+            <td class="py-3.5 px-4">
+              <span [ngClass]="ofr.modalidad === 'Consorcio' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-slate-100 text-slate-800 border-slate-200'"
+                    class="px-2 py-0.5 rounded text-[11px] font-mono border font-semibold">
+                {{ ofr.modalidad }} {{ ofr.ongAsociada ? '(' + ofr.ongAsociada + ')' : '' }}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-xs text-slate-600">
+              {{ ofr.tiempoLlegada }}
+            </td>
+            <td class="py-3.5 px-4 text-xs text-slate-500">
+              {{ ofr.fechaHora }}
+            </td>
+            <td class="py-3.5 px-4 text-center">
+              <span [ngClass]="ofr.estado.includes('Rectificada') ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300'"
+                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold border">
+                <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                {{ ofr.estado }}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-right">
+              <div class="inline-flex items-center gap-1.5">
+                <button type="button"
+                        (click)="iniciarEdicion(ofr)"
+                        title="Rectificar / Editar Oferta dentro del plazo"
+                        class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold inline-flex items-center gap-1 transition-all">
+                  <span class="material-symbols-outlined text-[14px]">edit</span>
+                  <span>Rectificar</span>
+                </button>
+                <button type="button"
+                        (click)="eliminarOferta(ofr.id)"
+                        title="Retirar Oferta"
+                        class="p-1 text-red-600 hover:bg-red-50 rounded transition-all">
+                  <span class="material-symbols-outlined text-[16px]">delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

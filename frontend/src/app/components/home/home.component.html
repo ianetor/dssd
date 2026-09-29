@@ -1,58 +1,177 @@
-<section class="home-panel">
-  <div class="welcome">
-    <div>
-      <p class="eyebrow">Centro de coordinación</p>
-      <h1>Inicio</h1>
-      <p class="subtitle">Una vista rápida del estado actual de las emergencias.</p>
-    </div>
-    <a routerLink="/nueva" class="primary-btn">+ Nueva emergencia</a>
-  </div>
-
-  <p class="error" *ngIf="error">{{ error }}</p>
-  <div class="loading" *ngIf="loading">Cargando resumen...</div>
-
-  <ng-container *ngIf="!loading">
-    <div class="stats-grid">
-      <article class="stat-card total">
-        <span>Total</span>
-        <strong>{{ emergencias.length }}</strong>
-        <small>emergencias registradas</small>
-      </article>
-      <article class="stat-card active">
-        <span>Activas</span>
-        <strong>{{ activas }}</strong>
-        <small>requieren seguimiento</small>
-      </article>
-      <article class="stat-card registered">
-        <span>Registradas</span>
-        <strong>{{ registradas }}</strong>
-        <small>pendientes de gestión</small>
-      </article>
-    </div>
-
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">Seguimiento</p>
-        <h2>Últimas emergencias</h2>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- Welcome Tactical Banner -->
+  <section class="bg-surface-container-lowest p-6 sm:p-8 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div class="space-y-1">
+      <div class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-slate-500">
+        <span class="text-secondary font-bold">RescueSync Tactical System</span>
+        <span>·</span>
+        <span>Entrega N° 2</span>
       </div>
-      <a routerLink="/emergencias" class="text-link">Ver todas</a>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-[#0b192c] tracking-tight">
+        Plataforma Regional de Coordinación ante Desastres
+      </h1>
+      <p class="text-sm text-slate-600 max-w-2xl">
+        Conectando municipios afectados, centro coordinador regional y organizaciones de rescate (ONGs) con orquestación en Bonita BPM.
+      </p>
     </div>
 
-    <div class="recent-list" *ngIf="recientes.length; else emptyState">
-      <article class="recent-item" *ngFor="let emergencia of recientes">
-        <div class="recent-main">
-          <strong>{{ emergencia.tipoEmergencia }}</strong>
-          <span>{{ emergencia.zonaAfectada }}</span>
+    <div class="flex items-center gap-3">
+      <a routerLink="/nueva"
+         class="px-5 py-2.5 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-bold shadow transition-all flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">add_alert</span>
+        <span>+ Declarar Emergencia</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Role Cards Grid for Fast Evaluation / Testing -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Card 1: Operador Municipal -->
+    <a routerLink="/nueva"
+       class="group bg-surface-container-lowest p-6 rounded-xl border border-slate-200 shadow-sm hover:border-secondary hover:shadow-md transition-all flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-xl bg-orange-100 text-[#ea580c] flex items-center justify-center group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[28px]">assignment_late</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase">Rol 1</span>
         </div>
-        <div class="recent-meta">
-          <span class="badge">{{ emergencia.estado }}</span>
-          <a [routerLink]="['/emergencias', emergencia.id]">Ver detalle</a>
+        <h3 class="text-lg font-bold text-[#0b192c] group-hover:text-secondary transition-colors">
+          Operador Municipal
+        </h3>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+          Registro de la contingencia con gravedad, zona afectada y descripción inicial. Dispara el caso en Bonita BPM.
+        </p>
+      </div>
+      <div class="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-secondary">
+        <span>Ir al panel municipal</span>
+        <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+      </div>
+    </a>
+
+    <!-- Card 2: Centro Coordinador -->
+    <a routerLink="/coordinador"
+       class="group bg-surface-container-lowest p-6 rounded-xl border border-slate-200 shadow-sm hover:border-secondary hover:shadow-md transition-all flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[28px]">inventory_2</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase">Rol 2</span>
         </div>
-      </article>
+        <h3 class="text-lg font-bold text-[#0b192c] group-hover:text-secondary transition-colors">
+          Centro Coordinador Regional
+        </h3>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+          Desglose en lotes de necesidades, configuración de la ventana de recepción (Timer Event) y publicación a la red.
+        </p>
+      </div>
+      <div class="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-secondary">
+        <span>Ir a definición de lotes</span>
+        <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+      </div>
+    </a>
+
+    <!-- Card 3: Portal ONGs -->
+    <a routerLink="/portal-ong"
+       class="group bg-surface-container-lowest p-6 rounded-xl border border-slate-200 shadow-sm hover:border-secondary hover:shadow-md transition-all flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[28px]">volunteer_activism</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase">Rol 3</span>
+        </div>
+        <h3 class="text-lg font-bold text-[#0b192c] group-hover:text-secondary transition-colors">
+          Portal de ONGs
+        </h3>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+          Visualización de convocatoria, reloj de cierre en vivo, carga de ofertas (individuales o consorcios) y rectificación.
+        </p>
+      </div>
+      <div class="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-secondary">
+        <span>Ir a postulación de ofertas</span>
+        <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+      </div>
+    </a>
+  </section>
+
+  <!-- Telemetry Metrics Bar -->
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div class="bg-surface-container-lowest p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+      <div class="p-3 bg-slate-100 text-slate-700 rounded-lg">
+        <span class="material-symbols-outlined text-[24px]">folder</span>
+      </div>
+      <div>
+        <span class="text-xs font-mono uppercase text-slate-400 font-semibold block">Total Registradas</span>
+        <span class="text-2xl font-bold text-[#0b192c]">{{ emergencias.length }}</span>
+      </div>
     </div>
 
-    <ng-template #emptyState>
-      <div class="empty-state">Todavía no hay emergencias registradas.</div>
-    </ng-template>
-  </ng-container>
-</section>
+    <div class="bg-surface-container-lowest p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+      <div class="p-3 bg-emerald-100 text-emerald-700 rounded-lg">
+        <span class="material-symbols-outlined text-[24px]">crisis_alert</span>
+      </div>
+      <div>
+        <span class="text-xs font-mono uppercase text-slate-400 font-semibold block">En Gestión / Activas</span>
+        <span class="text-2xl font-bold text-emerald-700">{{ activas || emergencias.length }}</span>
+      </div>
+    </div>
+
+    <div class="bg-surface-container-lowest p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+      <div class="p-3 bg-blue-100 text-secondary rounded-lg">
+        <span class="material-symbols-outlined text-[24px]">sync</span>
+      </div>
+      <div>
+        <span class="text-xs font-mono uppercase text-slate-400 font-semibold block">Motor BPM</span>
+        <span class="text-xs font-mono font-bold text-secondary">Bonita Engine 7.9+</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Emergencies Table / List -->
+  <section class="bg-surface-container-lowest p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+      <div>
+        <h2 class="text-lg font-bold text-[#0b192c]">Últimas Emergencias Notificadas</h2>
+        <p class="text-xs text-slate-500">Listado consolidado de incidentes del sistema.</p>
+      </div>
+      <a routerLink="/emergencias" class="text-xs font-semibold text-secondary hover:underline flex items-center gap-1">
+        <span>Ver todas</span>
+        <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+      </a>
+    </div>
+
+    <div *ngIf="loading" class="py-8 text-center text-slate-500">
+      <span class="material-symbols-outlined text-[32px] animate-spin text-secondary mb-1">refresh</span>
+      <p class="text-xs">Cargando emergencias...</p>
+    </div>
+
+    <div *ngIf="!loading && emergencias.length === 0" class="py-8 text-center text-slate-400 border border-dashed rounded-lg">
+      No hay emergencias en el historial. <a routerLink="/nueva" class="text-secondary font-bold underline">Declare la primera</a>.
+    </div>
+
+    <div *ngIf="!loading && emergencias.length > 0" class="space-y-3">
+      <div *ngFor="let emg of recientes"
+           class="p-4 bg-surface-container-low rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <strong class="text-sm font-bold text-[#0b192c]">{{ emg.tipoEmergencia }}</strong>
+            <span class="text-xs font-mono text-slate-400">#EMG-{{ emg.id }}</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-0.5">{{ emg.zonaAfectada }}</div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">
+            {{ emg.estado || 'REGISTRADA' }}
+          </span>
+          <a [routerLink]="['/emergencias', emg.id]"
+             class="px-3 py-1.5 rounded bg-secondary hover:bg-slate-800 text-white text-xs font-bold transition-all">
+            Desglosar Lotes
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
