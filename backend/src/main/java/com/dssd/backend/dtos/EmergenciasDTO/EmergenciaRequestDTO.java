@@ -24,7 +24,7 @@ import lombok.Setter;
     @JsonSubTypes.Type(value = InundacionRequestDTO.class, name = "INUNDACION"),
     @JsonSubTypes.Type(value = TerremotoRequestDTO.class, name = "TERREMOTO")
 })
-public abstract class EmergenciaRequestDTO {
+public  abstract class EmergenciaRequestDTO {
     private String tipoEmergencia;
     private String nivelGravedad;
     private String zonaAfectada;

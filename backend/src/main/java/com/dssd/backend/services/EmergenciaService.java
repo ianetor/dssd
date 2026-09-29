@@ -25,37 +25,37 @@ public class EmergenciaService {
 
     public EmergenciaService(EmergenciaRepository emergenciaRepository,
                              LoteNecesidadRepository loteNecesidadRepository,
-                             BonitaService bonitaService) {
+                             BonitaService bonitaService)
+    {
         this.emergenciaRepository = emergenciaRepository;
         this.loteNecesidadRepository = loteNecesidadRepository;
         this.bonitaService = bonitaService;
     }
 
-    public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
-        Emergencia emergencia = instanciarPorTipo(dto);
+    @Transactional
+public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
+    // 1. Instanciar y setear datos del DTO
+    Emergencia emergencia = instanciarPorTipo(dto);
+    emergencia.setNivelGravedad(dto.getNivelGravedad());
+    emergencia.setZonaAfectada(dto.getZonaAfectada());
+    emergencia.setDescripcion(dto.getDescripcion());
+    emergencia.setEstado("REGISTRADA");
+    emergencia.setMunicipioNombre(dto.getMunicipioNombre());
 
-        emergencia.setNivelGravedad(dto.getNivelGravedad());
-        emergencia.setZonaAfectada(dto.getZonaAfectada());
-        emergencia.setDescripcion(dto.getDescripcion());
-        emergencia.setEstado("REGISTRADA");
-        emergencia.setMunicipioNombre(dto.getMunicipioNombre());
+    // 2. Persistir localmente para obtener el ID de la base de datos
+    Emergencia guardada = emergenciaRepository.save(emergencia);
 
-        // 1. Guardar primero en BD para obtener el id de la Emergencia
-        Emergencia guardada = emergenciaRepository.save(emergencia);
+    // 3. Iniciar el proceso en Bonita pasando TODOS los atributos requeridos por el Contrato
+    try {
+        Long caseId = bonitaService.iniciarInstanciaEmergencia(dto,guardada.getId());
 
-        // 2. Iniciar el proceso en Bonita y obtener el caseId
-        try {
-            Long caseId = bonitaService.iniciarInstanciaEmergencia(
-                guardada.getId(),
-                guardada.getNivelGravedad(),
-                guardada.getZonaAfectada()
-            );
-            // 3. Setear el caseId en la entidad y volver a guardar
-            guardada.setCaseId(caseId);
-            guardada = emergenciaRepository.save(guardada);
-        } catch (Exception e) {
-            System.err.println("Error al iniciar instancia en Bonita: " + e.getMessage());
-        }
+        // 4. Setear el caseId (JPA lo persistirá automáticamente al hacer commit)
+        guardada.setCaseId(caseId);
+
+    } catch (Exception e) {
+        // Lanza excepción para hacer Rollback en la BD local si Bonita falla
+        throw new RuntimeException("No se pudo iniciar el flujo de proceso en Bonita: " + e.getMessage(), e);
+    }
 
         return toResponseDTO(guardada);
     }

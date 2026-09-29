@@ -1,5 +1,8 @@
 package com.dssd.backend.services;
 
+import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaRequestDTO;
+import com.dssd.backend.models.Emergencia;
+import com.dssd.backend.models.LoteNecesidad;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,7 +47,7 @@ public class BonitaService {
     }
 
     // 1. Iniciar sesión y obtener cookies + token
-    private HttpHeaders login() {
+    public HttpHeaders login() {
         String loginUrl = bonitaUrl + "/loginservice";
 
         HttpHeaders headers = new HttpHeaders();
@@ -80,65 +83,76 @@ public class BonitaService {
         return reqHeaders;
     }
 
-    // 2. Obtener el ID del proceso "Proceso1"
     public String getProcessDefinitionId(String processName, String processVersion, HttpHeaders headers) {
-        String url = bonitaUrl + "/API/bpm/process?p=0&c=10&f=name=" + processName + "&f=version=" + processVersion;
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+        String url = UriComponentsBuilder.fromHttpUrl(bonitaUrl + "/API/bpm/process")
+            .queryParam("p", 0)
+            .queryParam("c", 10)
+            .queryParam("f", "name=" + processName)
+            .queryParam("f", "version=" + processVersion)
+            .queryParam("f", "activationState=ENABLED")
+            .build()
+            .toUriString();
 
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class);
+        HttpEntity requestEntity = new HttpEntity<>(headers);
 
         try {
-            JsonNode root = objectMapper.readTree(response.getBody());
-            if (root.isArray() && root.size() > 0) {
-                return root.get(0).get("id").asText();
+            ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class);
+            
+            // 1. Obtener el body como String explícito
+            String jsonBody = (String) response.getBody();
+
+            if (jsonBody != null) {
+                // 2. Pasar el String directamente a readTree
+                JsonNode root = objectMapper.readTree(jsonBody);
+                
+                if (root.isArray() && !root.isEmpty()) {
+                    return root.get(0).get("id").asText();
+                }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+            throw new RuntimeException("Error al consultar el processDefinitionId en Bonita para el proceso: " + processName, e);
     }
 
-    public Long iniciarInstanciaEmergencia(Long emergenciaId, String nivelGravedad, String zonaAfectada) {
-        HttpHeaders headers = login();
+        throw new IllegalStateException("No se encontró ningún proceso habilitado con nombre '" + processName + "' y versión '" + processVersion + "' en Bonita.");
+    }
 
-        String processId = getProcessDefinitionId("Proceso1", "1.0", headers);
+    public Long iniciarInstanciaEmergencia(EmergenciaRequestDTO dto, Long emergenciaId) {
+        HttpHeaders headers = login();
+        System.out.println(headers);
+        String processId = getProcessDefinitionId("RescueSync", "1.0", headers);
+        System.out.println(processId);
         if (processId == null) {
             throw new RuntimeException("No se encontró el proceso 'Proceso1' desplegado en Bonita");
         }
 
-        String caseUrl = bonitaUrl + "/API/bpm/case";
+        String caseUrl = bonitaUrl + "/API/bpm/process/" + processId + "/instantiation";
 
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("processDefinitionId", processId);
+        Map<String, Object> emergenciaInput = new HashMap<>();
+        emergenciaInput.put("tipoEmergencia", dto.getTipoEmergencia()); // Ojo: usa el nombre corregido
+        emergenciaInput.put("nivelGravedad", dto.getNivelGravedad());
+        emergenciaInput.put("zonaAfectada", dto.getZonaAfectada());
+        emergenciaInput.put("descripcion", dto.getDescripcion());
+        emergenciaInput.put("municipioNombre", dto.getMunicipioNombre());
+        emergenciaInput.put("lotes", new ArrayList<LoteNecesidad>());
 
-        List<Map<String, Object>> variables = new ArrayList<>();
+        Map<String,Object> requestBody = new HashMap<>();
+        requestBody.put("emergenciaActualInput", emergenciaInput);
+        HttpEntity requestEntity = new HttpEntity<>(requestBody, headers);
 
-        Map<String, Object> var1 = new HashMap<>();
-        var1.put("name", "emergenciaId");
-        var1.put("value", emergenciaId);
-        variables.add(var1);
-
-        Map<String, Object> var2 = new HashMap<>();
-        var2.put("name", "nivelGravedad");
-        var2.put("value", nivelGravedad);
-        variables.add(var2);
-
-        Map<String, Object> var3 = new HashMap<>();
-        var3.put("name", "zonaAfectada");
-        var3.put("value", zonaAfectada);
-        variables.add(var3);
-
-        requestBody.put("variables", variables);
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(caseUrl, entity, String.class);
-
-        // Parsear la respuesta para obtener el id del caso en Bonita (caseId)
         try {
+            // 5. Enviar la petición POST a Bonita
+            ResponseEntity<String> response = restTemplate.exchange(caseUrl, HttpMethod.POST, requestEntity, String.class);
+
+            // 6. Parsear la respuesta para extraer el caseId
             JsonNode root = objectMapper.readTree(response.getBody());
-            return root.get("id").asLong();
+            if (root.has("caseId")) {
+                return root.get("caseId").asLong();
+            }
+
+            throw new RuntimeException("La respuesta de Bonita no incluyó el 'caseId'");
+
         } catch (Exception e) {
-            throw new RuntimeException("Error al parsear la respuesta del caseId de Bonita", e);
+            throw new RuntimeException("Error al instanciar el proceso 'RescueSync' en Bonita: " + e.getMessage(), e);
         }
     }
 
