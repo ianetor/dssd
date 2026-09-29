@@ -2,10 +2,7 @@ package com.dssd.backend.services;
 
 import com.dssd.backend.dtos.LoginRequestDTO;
 import com.dssd.backend.dtos.UsuarioResponseDTO;
-import com.dssd.backend.models.Municipio;
-import com.dssd.backend.models.Ong;
-import com.dssd.backend.repositories.MunicipioRepository;
-import com.dssd.backend.repositories.OngRepository;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -31,18 +28,13 @@ public class AuthService {
 
     private final RestClient restClient;
     private final String bonitaUrl;
-    private final MunicipioRepository municipioRepository;
-    private final OngRepository ongRepository;
     private final ObjectMapper objectMapper;
 
     public AuthService(
-            @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}") String bonitaUrl,
-            MunicipioRepository municipioRepository,
-            OngRepository ongRepository) {
+            @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}") String bonitaUrl) {
         this.bonitaUrl = bonitaUrl;
         this.restClient = RestClient.builder().baseUrl(bonitaUrl).build();
-        this.municipioRepository = municipioRepository;
-        this.ongRepository = ongRepository;
+
         this.objectMapper = new ObjectMapper();
     }
 

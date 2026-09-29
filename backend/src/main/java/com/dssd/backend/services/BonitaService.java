@@ -17,13 +17,13 @@ import java.util.*;
 @Service
 public class BonitaService {
 
-    @Value("${BONITA_URL}")
+    @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}")
     private String bonitaUrl;
 
-    @Value("${BONITA_USERNAME}")
+    @Value("${bonita.username:${BONITA_USERNAME:install}}")
     private String username;
 
-    @Value("${BONITA_PASSWORD}")
+    @Value("${bonita.password:${BONITA_PASSWORD:install}}")
     private String password;
 
     private final RestClient restClient;
@@ -34,9 +34,9 @@ public class BonitaService {
     private volatile String jsessionId;
 
     public BonitaService(
-            @Value("${BONITA_URL}") String bonitaUrl,
-            @Value("${BONITA_USERNAME}") String username,
-            @Value("${BONITA_PASSWORD}") String password) {
+            @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}") String bonitaUrl,
+            @Value("${bonita.username:${BONITA_USERNAME:install}}") String username,
+            @Value("${bonita.password:${BONITA_PASSWORD:install}}") String password) {
         this.restClient = RestClient.builder().baseUrl(bonitaUrl).build();
         this.bonitaUrl = bonitaUrl;
         this.username = username;

@@ -22,14 +22,9 @@ public class OfertaAyuda {
     private String estado;
     private Integer nivelHabilitacion;
     private Boolean recursosBloqueados = false;
+    private String ongLider;
+    private List<String> ongColaboradoras = new ArrayList<>();
 
-    @ManyToOne
-    @JoinColumn(name = "ong_lider_id")
-    private Ong ongLider;
-
-    @ManyToMany
-    @JoinTable(name = "consorcio_oferta", joinColumns = @JoinColumn(name = "oferta_id"), inverseJoinColumns = @JoinColumn(name = "ong_colaboradora_id"))
-    private List<Ong> ongsColaboradoras = new ArrayList<>();
 
     @OneToMany(mappedBy = "oferta", cascade = { CascadeType.REMOVE, CascadeType.PERSIST,
             CascadeType.MERGE }, orphanRemoval = true)

@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { EmergenciaService } from '../../services/emergencia.service';
-import { MunicipioService } from '../../services/municipio.service';
-import { Municipio } from '../../models/municipio.model';
+import { AuthService } from '../../services/auth.service';
+import { EmergenciaPayload } from '../../models/emergencia.model';
 
 @Component({
   selector: 'app-emergencia-form',
@@ -14,13 +13,12 @@ import { Municipio } from '../../models/municipio.model';
   templateUrl: './emergencia-form.component.html',
   styleUrls: ['./emergencia-form.component.scss'],
 })
-export class EmergenciaFormComponent implements OnInit {
+export class EmergenciaFormComponent {
   private readonly fb = inject(FormBuilder);
-  private readonly municipioService = inject(MunicipioService);
   private readonly emergenciaService = inject(EmergenciaService);
   private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
 
-  municipios: Municipio[] = [];
   isSubmitting = false;
   errorMessage = '';
 
@@ -29,32 +27,13 @@ export class EmergenciaFormComponent implements OnInit {
     nivelGravedad: ['MEDIA', Validators.required],
     zonaAfectada: ['', Validators.required],
     descripcion: ['', Validators.required],
-    municipioId: [null as number | null],
     hectareasAfectadas: [null as number | null],
     milimetrosAgua: [null as number | null],
     magnitudRichter: [null as number | null],
   });
 
-  ngOnInit(): void {
-    this.cargarMunicipios();
-  }
-
   get tipoActual(): string {
     return this.form.get('tipoEmergencia')?.value ?? 'INCENDIO';
-  }
-
-  cargarMunicipios(): void {
-    this.municipioService.listar().subscribe({
-      next: (municipios) => {
-        this.municipios = municipios;
-        if (municipios.length > 0) {
-          this.form.patchValue({ municipioId: municipios[0].id });
-        }
-      },
-      error: () => {
-        this.errorMessage = 'No se pudieron cargar los municipios.';
-      },
-    });
   }
 
   onSubmit(): void {
@@ -66,22 +45,22 @@ export class EmergenciaFormComponent implements OnInit {
 
     const values = this.form.getRawValue();
     const tipoEmergencia = values.tipoEmergencia ?? 'INCENDIO';
-    const nivelGravedad = values.nivelGravedad ?? 'MEDIA';
-    const zonaAfectada = values.zonaAfectada ?? '';
-    const descripcion = values.descripcion ?? '';
+    const currentUser = this.authService.currentUser();
+    const municipioNombre = currentUser?.username ?? currentUser?.entidadNombre ?? '';
 
-    const payload = {
+    // Se arma el payload con la información de la emergencia y el municipioNombre del usuario autenticado
+    const payload: EmergenciaPayload = {
       tipoEmergencia,
-      nivelGravedad,
-      zonaAfectada,
-      descripcion,
-      municipioId: values.municipioId ?? null,
+      nivelGravedad: values.nivelGravedad ?? 'MEDIA',
+      zonaAfectada: values.zonaAfectada ?? '',
+      descripcion: values.descripcion ?? '',
       hectareasAfectadas:
         tipoEmergencia === 'INCENDIO' ? Number(values.hectareasAfectadas ?? 0) : null,
       milimetrosAgua:
         tipoEmergencia === 'INUNDACION' ? Number(values.milimetrosAgua ?? 0) : null,
       magnitudRichter:
         tipoEmergencia === 'TERREMOTO' ? Number(values.magnitudRichter ?? 0) : null,
+      municipioNombre,
     };
 
     this.isSubmitting = true;

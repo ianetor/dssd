@@ -1,14 +1,17 @@
 package com.dssd.backend.controllers;
 
-import com.dssd.backend.dtos.EmergenciaRequestDTO;
-import com.dssd.backend.dtos.EmergenciaResponseDTO;
+import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaResponseDTO;
+import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaRequestDTO;
 import com.dssd.backend.dtos.LoteRequestDTO;
 import com.dssd.backend.dtos.LoteResponseDTO;
 import com.dssd.backend.services.EmergenciaService;
+
+
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.dssd.backend.services.BonitaService;
 import java.util.List;
 
 @RestController
@@ -17,16 +20,19 @@ public class EmergenciaController {
 
     private final EmergenciaService emergenciaService;
 
-    public EmergenciaController(EmergenciaService emergenciaService) {
+
+    public EmergenciaController(EmergenciaService emergenciaService, BonitaService bonitaService) {
         this.emergenciaService = emergenciaService;
     }
 
     @PostMapping
+    @CrossOrigin(origins = "http://localhost:4200", allowCredentials = "true")
     public ResponseEntity<EmergenciaResponseDTO> registrarEmergencia(@RequestBody EmergenciaRequestDTO requestDTO) {
+
         EmergenciaResponseDTO creada = emergenciaService.crearEmergencia(requestDTO);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(creada);
     }
-
 
     @PostMapping("/{id}/lotes")
     public ResponseEntity<EmergenciaResponseDTO> publicarLotes(

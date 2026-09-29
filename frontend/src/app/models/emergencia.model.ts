@@ -26,6 +26,7 @@ export interface EmergenciaPayload {
   zonaAfectada: string;
   descripcion: string;
   municipioId?: number | null;
+  municipioNombre?: string;
   hectareasAfectadas?: number | null;
   milimetrosAgua?: number | null;
   magnitudRichter?: number | null;

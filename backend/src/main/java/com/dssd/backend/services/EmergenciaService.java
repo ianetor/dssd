@@ -1,13 +1,12 @@
 package com.dssd.backend.services;
 
-import com.dssd.backend.dtos.EmergenciaRequestDTO;
-import com.dssd.backend.dtos.EmergenciaResponseDTO;
 import com.dssd.backend.dtos.LoteRequestDTO;
 import com.dssd.backend.dtos.LoteResponseDTO;
+import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaRequestDTO;
+import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaResponseDTO;
 import com.dssd.backend.models.*;
 import com.dssd.backend.repositories.EmergenciaRepository;
 import com.dssd.backend.repositories.LoteNecesidadRepository;
-import com.dssd.backend.repositories.MunicipioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,29 +20,23 @@ import java.util.stream.Collectors;
 public class EmergenciaService {
 
     private final EmergenciaRepository emergenciaRepository;
-    private final MunicipioRepository municipioRepository;
+
     private final LoteNecesidadRepository loteNecesidadRepository;
 
     public EmergenciaService(EmergenciaRepository emergenciaRepository,
-                             MunicipioRepository municipioRepository,
                              LoteNecesidadRepository loteNecesidadRepository) {
         this.emergenciaRepository = emergenciaRepository;
-        this.municipioRepository = municipioRepository;
         this.loteNecesidadRepository = loteNecesidadRepository;
     }
 
     public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
-        Emergencia emergencia = instanciarPorTipo(dto);
+        Emergencia emergencia = instanciarPorTipo(dto); //crearInstancia
 
         emergencia.setNivelGravedad(dto.getNivelGravedad());
         emergencia.setZonaAfectada(dto.getZonaAfectada());
         emergencia.setDescripcion(dto.getDescripcion());
         emergencia.setEstado("REGISTRADA");
-
-        if (dto.getMunicipioId() != null) {
-            municipioRepository.findById(dto.getMunicipioId())
-                    .ifPresent(emergencia::setMunicipioAfectado);
-        }
+        emergencia.setMunicipioNombre(dto.getMunicipioNombre());
 
         Emergencia guardada = emergenciaRepository.save(emergencia);
         return toResponseDTO(guardada);
@@ -102,58 +95,29 @@ public class EmergenciaService {
     }
 
     private Emergencia instanciarPorTipo(EmergenciaRequestDTO dto) {
-        String tipo = dto.getTipoEmergencia() != null ? dto.getTipoEmergencia().trim().toUpperCase() : "INCENDIO";
-
-        if (tipo.contains("INUNDA")) {
-            Inundacion inundacion = new Inundacion();
-            inundacion.setMilimetrosAgua(dto.getMilimetrosAgua());
-            return inundacion;
-        } else if (tipo.contains("TERRE")) {
-            Terremoto terremoto = new Terremoto();
-            terremoto.setMagnitudRichter(dto.getMagnitudRichter());
-            return terremoto;
-        } else {
-            Incendio incendio = new Incendio();
-            incendio.setHectareasAfectadas(dto.getHectareasAfectadas());
-            return incendio;
-        }
+        return dto.aEntidad(); 
     }
 
     public EmergenciaResponseDTO toResponseDTO(Emergencia emergencia) {
-        EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder = EmergenciaResponseDTO.builder()
-                .id(emergencia.getId())
-                .nivelGravedad(emergencia.getNivelGravedad())
-                .zonaAfectada(emergencia.getZonaAfectada())
-                .descripcion(emergencia.getDescripcion())
-                .estado(emergencia.getEstado());
+    EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder = EmergenciaResponseDTO.builder()
+            .id(emergencia.getId())
+            .nivelGravedad(emergencia.getNivelGravedad())
+            .zonaAfectada(emergencia.getZonaAfectada())
+            .descripcion(emergencia.getDescripcion())
+            .estado(emergencia.getEstado())
+            .municipioNombre(emergencia.getMunicipioNombre());
 
-        if (emergencia.getMunicipioAfectado() != null) {
-            builder.municipioId(emergencia.getMunicipioAfectado().getId())
-                   .municipioNombre(emergencia.getMunicipioAfectado().getNombre());
-        }
+    // Invocación polimórfica (cada subclase ejecuta su implementación)
+    emergencia.popularCamposEspecificos(builder);
 
-        if (emergencia instanceof Incendio inc) {
-            builder.tipoEmergencia("INCENDIO")
-                   .hectareasAfectadas(inc.getHectareasAfectadas());
-        } else if (emergencia instanceof Inundacion inu) {
-            builder.tipoEmergencia("INUNDACION")
-                   .milimetrosAgua(inu.getMilimetrosAgua());
-        } else if (emergencia instanceof Terremoto ter) {
-            builder.tipoEmergencia("TERREMOTO")
-                   .magnitudRichter(ter.getMagnitudRichter());
-        }
+    List<LoteResponseDTO> lotesDTO = (emergencia.getLotes() != null)
+            ? emergencia.getLotes().stream().map(this::toLoteResponseDTO).collect(Collectors.toList())
+            : new ArrayList<>();
+            
+    builder.lotes(lotesDTO);
 
-        if (emergencia.getLotes() != null) {
-            List<LoteResponseDTO> lotesDTO = emergencia.getLotes().stream()
-                    .map(this::toLoteResponseDTO)
-                    .collect(Collectors.toList());
-            builder.lotes(lotesDTO);
-        } else {
-            builder.lotes(new ArrayList<>());
-        }
-
-        return builder.build();
-    }
+    return builder.build();
+}
 
     private LoteResponseDTO toLoteResponseDTO(LoteNecesidad lote) {
         return LoteResponseDTO.builder()

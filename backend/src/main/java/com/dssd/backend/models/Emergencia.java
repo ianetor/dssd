@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaResponseDTO;
+
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "tipo_emergencia", discriminatorType = DiscriminatorType.STRING)
@@ -25,11 +27,11 @@ public abstract class Emergencia {
     private String zonaAfectada;
     private String descripcion;
     private String estado;
+    private String municipioNombre;
+    private Long caseId;
 
-    @ManyToOne
-    @JoinColumn(name = "municipio_id")
-    private Municipio municipioAfectado;
-
-    @OneToMany(mappedBy = "emergencia", cascade = { CascadeType.REMOVE, CascadeType.PERSIST, CascadeType.MERGE }, orphanRemoval = true)
+    @OneToMany(mappedBy = "emergencia", cascade = {CascadeType.REMOVE, CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<LoteNecesidad> lotes = new ArrayList<>();
+
+    public abstract void popularCamposEspecificos(EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder);
 }
