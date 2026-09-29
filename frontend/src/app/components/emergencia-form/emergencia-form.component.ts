@@ -132,5 +132,18 @@ export class EmergenciaFormComponent {
     this.selectedEmergencia = undefined;
   }
 
-
+  cargarEmergencias(): void {
+      this.isLoadingList = true;
+      this.emergenciaService.listar().subscribe({
+        next: (data) => {
+          this.emergencias = data;
+          this.isLoadingList = false;
+          this.cd.detectChanges();
+        },
+        error: () => {
+          this.isLoadingList = false;
+          this.cd.detectChanges();
+        },
+      });
+    }
 }

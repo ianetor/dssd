@@ -20,6 +20,10 @@ export class EmergenciasListComponent implements OnInit {
   error = '';
 
   ngOnInit(): void {
+    this.cargarEmergencias();
+  }
+
+  cargarEmergencias(): void {
     this.cargar();
   }
 

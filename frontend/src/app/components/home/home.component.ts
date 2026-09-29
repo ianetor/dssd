@@ -32,6 +32,13 @@ export class HomeComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.cargarEmergencias();
+  }
+
+  cargarEmergencias(): void {
+    this.loading = true;
+    this.error = '';
+
     this.emergenciaService.listar().subscribe({
       next: (emergencias) => {
         this.emergencias = emergencias;

@@ -99,25 +99,24 @@ public class EmergenciaService {
     }
 
     public EmergenciaResponseDTO toResponseDTO(Emergencia emergencia) {
-    EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder = EmergenciaResponseDTO.builder()
-            .id(emergencia.getId())
-            .nivelGravedad(emergencia.getNivelGravedad())
-            .zonaAfectada(emergencia.getZonaAfectada())
-            .descripcion(emergencia.getDescripcion())
-            .estado(emergencia.getEstado())
-            .municipioNombre(emergencia.getMunicipioNombre());
+        EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder = EmergenciaResponseDTO.builder()
+                .id(emergencia.getId())
+                .nivelGravedad(emergencia.getNivelGravedad())
+                .zonaAfectada(emergencia.getZonaAfectada())
+                .descripcion(emergencia.getDescripcion())
+                .estado(emergencia.getEstado())
+                .municipioNombre(emergencia.getMunicipioNombre());
 
-    // Invocación polimórfica (cada subclase ejecuta su implementación)
-    emergencia.popularCamposEspecificos(builder);
+        emergencia.popularCamposEspecificos(builder);
 
-    List<LoteResponseDTO> lotesDTO = (emergencia.getLotes() != null)
-            ? emergencia.getLotes().stream().map(this::toLoteResponseDTO).collect(Collectors.toList())
-            : new ArrayList<>();
-            
-    builder.lotes(lotesDTO);
+        List<LoteResponseDTO> lotesDTO = (emergencia.getLotes() != null)
+                ? emergencia.getLotes().stream().map(this::toLoteResponseDTO).collect(Collectors.toList())
+                : new ArrayList<>();
+                
+        builder.lotes(lotesDTO);
 
-    return builder.build();
-}
+        return builder.build();
+    }
 
     private LoteResponseDTO toLoteResponseDTO(LoteNecesidad lote) {
         return LoteResponseDTO.builder()

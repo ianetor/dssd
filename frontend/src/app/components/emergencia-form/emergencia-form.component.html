@@ -1,65 +1,363 @@
-<section class="panel">
-  <a routerLink="/" class="back-link">Volver al inicio</a>
-  <h2>Registrar emergencia</h2>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- Operational Sub-Header & Breadcrumb -->
+  <section class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-slate-500 mb-1">
+        <span>Gestión Municipal</span>
+        <span>/</span>
+        <span class="text-secondary font-bold">Eslabón 1 · Registro de Emergencias</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-[#0b192c] tracking-tight">
+        Operador Municipal · Declaración de Contingencias
+      </h1>
+      <p class="text-sm text-slate-600 mt-1">
+        Registro directo de incidentes graves para alertar y solicitar asistencia al Centro Coordinador Regional.
+      </p>
+    </div>
+  </section>
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div class="grid">
-      <label>
-        <span>Tipo</span>
-        <select formControlName="tipoEmergencia">
-          <option value="INCENDIO">Incendio</option>
-          <option value="INUNDACION">Inundación</option>
-          <option value="TERREMOTO">Terremoto</option>
-        </select>
-      </label>
-
-      <label>
-        <span>Gravedad</span>
-        <select formControlName="nivelGravedad">
-          <option value="BAJA">Baja</option>
-          <option value="MEDIA">Media</option>
-          <option value="ALTA">Alta</option>
-          <option value="CRITICO">Crítico</option>
-        </select>
-      </label>
-
-      
-      <label>
-        <span>Zona afectada</span>
-        <input formControlName="zonaAfectada" type="text" placeholder="Ej: Barrio Norte" />
-      </label>
+  <!-- Section 1: Formulario Declarar Nueva Emergencia -->
+  <section class="bg-surface-container-lowest rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
+    <div class="border-b border-slate-200 pb-4 mb-6">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-tertiary text-[24px]">crisis_alert</span>
+        <h2 class="text-xl font-bold text-[#0b192c]">Declarar Nueva Emergencia</h2>
+      </div>
+      <p class="text-xs sm:text-sm text-slate-500 mt-1">
+        Complete los datos iniciales para convocar al Centro Coordinador.
+      </p>
     </div>
 
-    <label>
-      <span>Descripción</span>
-      <textarea formControlName="descripcion" rows="4" placeholder="Describí la emergencia..."></textarea>
-    </label>
-
-    <div class="grid" *ngIf="tipoActual === 'INCENDIO'">
-      <label>
-        <span>Hectáreas afectadas</span>
-        <input formControlName="hectareasAfectadas" type="number" min="0" step="0.1" />
-      </label>
+    <!-- Feedback Alerts -->
+    <div *ngIf="successMessage" class="mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 flex items-start gap-3">
+      <span class="material-symbols-outlined text-emerald-600 text-[24px] shrink-0">check_circle</span>
+      <div>
+        <div class="font-bold text-sm">¡Emergencia Declarada Exitosamente!</div>
+        <div class="text-xs mt-0.5">{{ successMessage }}</div>
+      </div>
     </div>
 
-    <div class="grid" *ngIf="tipoActual === 'INUNDACION'">
-      <label>
-        <span>Milímetros de agua</span>
-        <input formControlName="milimetrosAgua" type="number" min="0" step="0.1" />
-      </label>
+    <div *ngIf="errorMessage" class="mb-6 p-4 rounded-lg bg-red-50 border border-red-300 text-red-900 flex items-start gap-3">
+      <span class="material-symbols-outlined text-red-600 text-[24px] shrink-0">error</span>
+      <div>
+        <div class="font-bold text-sm">Atención</div>
+        <div class="text-xs mt-0.5">{{ errorMessage }}</div>
+      </div>
     </div>
 
-    <div class="grid" *ngIf="tipoActual === 'TERREMOTO'">
-      <label>
-        <span>Magnitud Richter</span>
-        <input formControlName="magnitudRichter" type="number" min="0" step="0.1" />
-      </label>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+      <!-- Grid Row 1: Tipo de Evento, Nivel de Gravedad y Municipio -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Tipo de Emergencia -->
+        <div>
+          <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+            Tipo de Desastre <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <select formControlName="tipoEmergencia"
+                    class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent font-medium">
+              <option value="INUNDACION">Inundación / Anegamiento</option>
+              <option value="INCENDIO">Incendio Forestal / Urbano</option>
+              <option value="TERREMOTO">Terremoto / Derrumbe</option>
+              <option value="TEMPORAL">Temporal Severo / Vientos</option>
+              <option value="OTRO">Otro Incidente Crítico</option>
+            </select>
+            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[20px]">
+              expand_more
+            </span>
+          </div>
+        </div>
+
+        <!-- Gravedad -->
+        <div>
+          <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+            Nivel de Gravedad <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <select formControlName="nivelGravedad"
+                    class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent font-medium">
+              <option value="BAJA">Baja (Asistencia ordinaria)</option>
+              <option value="MEDIA">Media (Refuerzo sectorial)</option>
+              <option value="ALTA">Alta (Urgencia operacional)</option>
+              <option value="CRITICO">Crítica / Alerta Roja (Catástrofe)</option>
+            </select>
+            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[20px]">
+              expand_more
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zona Afectada -->
+      <div>
+        <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+          Localidad / Zona Afectada <span class="text-red-500">*</span>
+        </label>
+        <input formControlName="zonaAfectada"
+               type="text"
+               placeholder="Ej: Cuenca Río Salado / Costanera Norte y Barrios Aledaños"
+               class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent font-medium" />
+      </div>
+
+      <!-- Descripción del Daño -->
+      <div>
+        <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
+          Descripción de Daños y Población en Riesgo <span class="text-red-500">*</span>
+        </label>
+        <textarea formControlName="descripcion"
+                  rows="3"
+                  placeholder="Describa el alcance de la emergencia, cantidad de damnificados preliminares y necesidades inmediatas..."
+                  class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent resize-y font-normal"></textarea>
+      </div>
+
+      <!-- Métricas Especializadas según el tipo de Desastre -->
+      <div *ngIf="tipoActual === 'INCENDIO'" class="p-4 bg-orange-50/70 border border-orange-200 rounded-lg">
+        <label class="block text-xs font-mono uppercase font-semibold text-orange-900 mb-1">
+          Hectáreas Afectadas Estimadas
+        </label>
+        <div class="flex items-center gap-2 max-w-xs">
+          <input formControlName="hectareasAfectadas"
+                 type="number"
+                 step="0.1"
+                 min="0"
+                 placeholder="Ej: 350.5"
+                 class="w-full bg-white border border-orange-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-orange-500 outline-none" />
+          <span class="text-xs font-mono text-orange-800 font-bold">ha</span>
+        </div>
+      </div>
+
+      <div *ngIf="tipoActual === 'INUNDACION'" class="p-4 bg-blue-50/70 border border-blue-200 rounded-lg">
+        <label class="block text-xs font-mono uppercase font-semibold text-blue-900 mb-1">
+          Precipitación Acumulada / Milímetros de Agua
+        </label>
+        <div class="flex items-center gap-2 max-w-xs">
+          <input formControlName="milimetrosAgua"
+                 type="number"
+                 step="0.1"
+                 min="0"
+                 placeholder="Ej: 140.0"
+                 class="w-full bg-white border border-blue-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+          <span class="text-xs font-mono text-blue-800 font-bold">mm</span>
+        </div>
+      </div>
+
+      <div *ngIf="tipoActual === 'TERREMOTO'" class="p-4 bg-purple-50/70 border border-purple-200 rounded-lg">
+        <label class="block text-xs font-mono uppercase font-semibold text-purple-900 mb-1">
+          Magnitud en Escala de Richter
+        </label>
+        <div class="flex items-center gap-2 max-w-xs">
+          <input formControlName="magnitudRichter"
+                 type="number"
+                 step="0.1"
+                 min="0"
+                 placeholder="Ej: 6.2"
+                 class="w-full bg-white border border-purple-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-purple-500 outline-none" />
+          <span class="text-xs font-mono text-purple-800 font-bold">Richter</span>
+        </div>
+      </div>
+
+      <!-- Contacto de Enlace Municipal -->
+      <div class="bg-surface-container-low p-4 rounded-lg border border-slate-200">
+        <div class="flex items-center gap-2 text-xs font-mono uppercase font-bold text-slate-700 mb-3">
+          <span class="material-symbols-outlined text-[18px] text-secondary">contact_phone</span>
+          Oficial de Enlace Municipal Designado
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-slate-500 mb-1">Nombre y Apellido</label>
+            <input formControlName="responsableNombre"
+                   type="text"
+                   class="w-full bg-white border border-slate-300 text-sm rounded-lg p-2 text-slate-800 focus:ring-2 focus:ring-secondary outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-slate-500 mb-1">Teléfono Directo</label>
+            <input formControlName="responsableTelefono"
+                   type="tel"
+                   class="w-full bg-white border border-slate-300 text-sm rounded-lg p-2 text-slate-800 focus:ring-2 focus:ring-secondary outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <span class="material-symbols-outlined text-[18px] text-secondary">verified_user</span>
+          <span>Se generará una instancia asignada al Centro Coordinador.</span>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <button type="button"
+                  (click)="form.reset({ tipoEmergencia: 'INUNDACION', nivelGravedad: 'ALTA' })"
+                  class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-semibold transition-all w-1/2 sm:w-auto">
+            Limpiar
+          </button>
+
+          <button type="submit"
+                  [disabled]="isSubmitting"
+                  class="px-6 py-2.5 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-bold shadow transition-all flex items-center justify-center gap-2 w-1/2 sm:w-auto disabled:opacity-50">
+            <span *ngIf="isSubmitting" class="material-symbols-outlined text-[18px] animate-spin">refresh</span>
+            <span *ngIf="!isSubmitting" class="material-symbols-outlined text-[18px]">send</span>
+            <span>{{ isSubmitting ? 'Registrando...' : 'Registrar y Enviar Emergencia' }}</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- Section 2: Emergencias Registradas -->
+  <section class="bg-surface-container-lowest rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
+      <div>
+        <h2 class="text-xl font-bold text-[#0b192c]">Historial de Emergencias Declaradas</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Seguimiento en tiempo real de las solicitudes remitidas.</p>
+      </div>
+
+      <!-- Quick Filter -->
+      <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+        <button type="button"
+                (click)="filtroEstado = 'TODAS'"
+                [ngClass]="filtroEstado === 'TODAS' ? 'bg-white shadow text-[#0b192c] font-bold' : 'text-slate-600 hover:text-slate-900'"
+                class="px-3 py-1 rounded transition-all">
+          Todas ({{ emergencias.length }})
+        </button>
+        <button type="button"
+                (click)="filtroEstado = 'REGISTRADA'"
+                [ngClass]="filtroEstado === 'REGISTRADA' ? 'bg-white shadow text-[#0b192c] font-bold' : 'text-slate-600 hover:text-slate-900'"
+                class="px-3 py-1 rounded transition-all">
+          Enviadas
+        </button>
+        <button type="button"
+                (click)="filtroEstado = 'CONVOCATORIA_ABIERTA'"
+                [ngClass]="filtroEstado === 'CONVOCATORIA_ABIERTA' ? 'bg-white shadow text-[#0b192c] font-bold' : 'text-slate-600 hover:text-slate-900'"
+                class="px-3 py-1 rounded transition-all">
+          Convocatoria Abierta
+        </button>
+      </div>
     </div>
 
-    <div class="actions">
-      <button type="submit" [disabled]="isSubmitting">{{ isSubmitting ? 'Guardando...' : 'Registrar emergencia' }}</button>
+    <!-- Loading State -->
+    <div *ngIf="isLoadingList" class="py-12 text-center text-slate-500">
+      <span class="material-symbols-outlined text-[36px] animate-spin text-secondary mb-2">refresh</span>
+      <p class="text-sm">Consultando emergencias locales...</p>
     </div>
 
-    <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
-  </form>
-</section>
+    <!-- Empty State -->
+    <div *ngIf="!isLoadingList && emergenciasFiltradas.length === 0" class="py-12 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-lg">
+      <span class="material-symbols-outlined text-[42px] text-slate-400 mb-2">inbox</span>
+      <p class="text-sm font-medium">No se registran contingencias en esta vista.</p>
+    </div>
+
+    <!-- Table -->
+    <div *ngIf="!isLoadingList && emergenciasFiltradas.length > 0" class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-[#0b192c] text-white text-xs font-mono uppercase tracking-wider">
+            <th class="py-3 px-4 rounded-l">ID</th>
+            <th class="py-3 px-4">Tipo & Zona</th>
+            <th class="py-3 px-4">Gravedad</th>
+            <th class="py-3 px-4">Lotes</th>
+            <th class="py-3 px-4">Estado</th>
+            <th class="py-3 px-4 text-right rounded-r">Acción</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-sm">
+          <tr *ngFor="let e of emergenciasFiltradas" class="hover:bg-slate-50 transition-colors">
+            <td class="py-3.5 px-4 font-mono font-bold text-[#0b192c]">
+              EMG-{{ e.id ? (e.id < 10 ? '00' + e.id : '0' + e.id) : '001' }}
+            </td>
+            <td class="py-3.5 px-4">
+              <div class="font-bold text-[#0b192c]">{{ e.tipoEmergencia }}</div>
+              <div class="text-xs text-slate-500">{{ e.zonaAfectada }}</div>
+            </td>
+            <td class="py-3.5 px-4">
+              <span [ngClass]="{
+                      'bg-red-100 text-red-800 border-red-200': e.nivelGravedad === 'CRITICO' || e.nivelGravedad === 'ALTA',
+                      'bg-amber-100 text-amber-800 border-amber-200': e.nivelGravedad === 'MEDIA',
+                      'bg-slate-100 text-slate-800 border-slate-200': e.nivelGravedad === 'BAJA'
+                    }"
+                    class="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2 py-0.5 rounded border uppercase">
+                <span class="material-symbols-outlined text-[12px]">priority_high</span>
+                {{ e.nivelGravedad }}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 font-mono text-xs">
+              <span class="px-2 py-0.5 bg-slate-100 rounded text-slate-700 font-semibold">
+                {{ e.lotes.length }} lotes
+              </span>
+            </td>
+            <td class="py-3.5 px-4">
+              <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                {{ e.estado || 'REGISTRADA' }}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-right">
+              <button (click)="abrirDetalle(e)"
+                      class="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs inline-flex items-center gap-1 transition-all">
+                <span>Ver Detalle</span>
+                <span class="material-symbols-outlined text-[15px]">visibility</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Modal Detalle de Emergencia -->
+<div *ngIf="showModal && selectedEmergencia"
+     class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-2xl border border-slate-300 max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-secondary text-[24px]">assignment</span>
+        <h3 class="text-lg font-bold text-[#0b192c]">
+          Ficha Operativa · EMG-{{ selectedEmergencia.id }}
+        </h3>
+      </div>
+      <button (click)="cerrarDetalle()" class="p-1 rounded hover:bg-slate-100 text-slate-500">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 text-sm">
+      <div class="p-3 bg-slate-50 rounded-lg">
+        <span class="block text-[11px] font-mono uppercase text-slate-500">Tipo de Evento</span>
+        <strong class="text-base text-slate-800">{{ selectedEmergencia.tipoEmergencia }}</strong>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-lg">
+        <span class="block text-[11px] font-mono uppercase text-slate-500">Nivel de Gravedad</span>
+        <strong class="text-base text-red-600">{{ selectedEmergencia.nivelGravedad }}</strong>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-lg col-span-2">
+        <span class="block text-[11px] font-mono uppercase text-slate-500">Zona Afectada</span>
+        <span class="font-medium text-slate-800">{{ selectedEmergencia.zonaAfectada }}</span>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-lg col-span-2">
+        <span class="block text-[11px] font-mono uppercase text-slate-500">Descripción del Desastre</span>
+        <p class="text-slate-700 mt-1 whitespace-pre-line">{{ selectedEmergencia.descripcion }}</p>
+      </div>
+    </div>
+
+    <!-- Lotes asociados -->
+    <div class="pt-2">
+      <h4 class="text-xs font-mono uppercase font-bold text-slate-600 mb-2">Lotes de Necesidades Desglosados</h4>
+      <div *ngIf="selectedEmergencia.lotes && selectedEmergencia.lotes.length > 0; else sinLotesModal" class="space-y-2">
+        <div *ngFor="let lote of selectedEmergencia.lotes" class="p-2.5 rounded bg-slate-100 border border-slate-200 flex items-center justify-between text-xs">
+          <span class="font-bold text-slate-800">{{ lote.tipoRecurso }}</span>
+          <span class="font-mono text-slate-600">Requerido: <strong>{{ lote.cantidadRequerida }}</strong> | Cubierto: <strong>{{ lote.cantidadCubierta }}</strong></span>
+        </div>
+      </div>
+      <ng-template #sinLotesModal>
+        <p class="text-xs text-slate-400 italic">Pendiente de desglose por parte del Centro Coordinador Regional.</p>
+      </ng-template>
+    </div>
+
+    <div class="flex justify-end pt-3 border-t border-slate-200 gap-2">
+      <button (click)="cerrarDetalle()" class="px-5 py-2 rounded-lg bg-secondary text-white text-xs font-bold hover:bg-slate-800 transition-all">
+        Cerrar Ficha
+      </button>
+    </div>
+  </div>
+</div>

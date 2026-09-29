@@ -2,21 +2,18 @@ package com.dssd.backend.dtos.EmergenciasDTO;
 
 import com.dssd.backend.models.Emergencia;
 import com.dssd.backend.models.Terremoto;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+/**
+ * TerremotoRequestDTO
+ */
 public class TerremotoRequestDTO extends EmergenciaRequestDTO {
+    private Double magnitudRichter;
 
     @Override
     public Emergencia aEntidad() {
         Terremoto terremoto = new Terremoto();
-        terremoto.setMagnitudRichter(getMagnitudRichter());
+        terremoto.setMagnitudRichter(magnitudRichter);
         return terremoto;
     }
+
 }

@@ -2,21 +2,18 @@ package com.dssd.backend.dtos.EmergenciasDTO;
 
 import com.dssd.backend.models.Emergencia;
 import com.dssd.backend.models.Incendio;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+/**
+ * IncendioRequestDTO
+ */
 public class IncendioRequestDTO extends EmergenciaRequestDTO {
 
+    private Double hectareasAfectadas;
     @Override
     public Emergencia aEntidad() {
         Incendio incendio = new Incendio();
-        incendio.setHectareasAfectadas(getHectareasAfectadas());
+        incendio.setHectareasAfectadas(this.hectareasAfectadas);
         return incendio;
     }
 }
+
