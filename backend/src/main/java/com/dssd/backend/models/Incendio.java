@@ -17,6 +17,7 @@ public class Incendio extends Emergencia {
 
     @Override
     public void popularCamposEspecificos(EmergenciaResponseDTOBuilder builder) {
+        builder.tipoEmergencia("INCENDIO");
         builder.hectareasAfectadas(this.hectareasAfectadas);
     }
     

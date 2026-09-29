@@ -17,6 +17,7 @@ public class Terremoto extends Emergencia {
 
     @Override
     public void popularCamposEspecificos(EmergenciaResponseDTOBuilder builder) {
+        builder.tipoEmergencia("TERREMOTO");
         builder.magnitudRichter(this.magnitudRichter);
     }
 

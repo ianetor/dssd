@@ -36,4 +36,8 @@ public abstract class EmergenciaRequestDTO {
     private Double magnitudRichter;
 
     public abstract Emergencia aEntidad();
+
+    public String getTipoEmergencia(){
+        return tipoEmergencia;
+    }
 }
