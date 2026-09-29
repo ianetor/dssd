@@ -2,6 +2,7 @@ package com.dssd.backend.models;
 
 import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaResponseDTO.EmergenciaResponseDTOBuilder;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import lombok.Setter;
 @Setter
 public class Inundacion extends Emergencia {
     
+    @Column(name = "milimetros_agua")
     private Double milimetrosAgua;
 
     @Override

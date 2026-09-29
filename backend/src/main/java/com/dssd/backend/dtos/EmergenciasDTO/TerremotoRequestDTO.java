@@ -12,6 +12,7 @@ public class TerremotoRequestDTO extends EmergenciaRequestDTO {
     @Override
     public Emergencia aEntidad() {
         Terremoto terremoto = new Terremoto();
+        cargarCamposComunes(terremoto);
         terremoto.setMagnitudRichter(magnitudRichter);
         return terremoto;
     }

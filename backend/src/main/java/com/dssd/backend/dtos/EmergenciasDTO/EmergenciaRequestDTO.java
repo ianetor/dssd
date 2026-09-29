@@ -40,4 +40,13 @@ public  abstract class EmergenciaRequestDTO {
     public String getTipoEmergencia(){
         return tipoEmergencia;
     }
+
+    protected void cargarCamposComunes(Emergencia emergencia) {
+        emergencia.setNivelGravedad(this.nivelGravedad);
+        emergencia.setZonaAfectada(this.zonaAfectada);
+        emergencia.setDescripcion(this.descripcion);
+        emergencia.setMunicipioNombre(this.municipioNombre);
+        emergencia.setEstado("REGISTRADA");
+    }
+
 }

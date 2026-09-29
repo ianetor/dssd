@@ -35,21 +35,14 @@ public class EmergenciaService {
     @Transactional
 public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
     // 1. Instanciar y setear datos del DTO
-    Emergencia emergencia = instanciarPorTipo(dto);
-    emergencia.setNivelGravedad(dto.getNivelGravedad());
-    emergencia.setZonaAfectada(dto.getZonaAfectada());
-    emergencia.setDescripcion(dto.getDescripcion());
-    emergencia.setEstado("REGISTRADA");
-    emergencia.setMunicipioNombre(dto.getMunicipioNombre());
+    Emergencia emergencia = dto.aEntidad();
+    System.out.println("Emergencia antes de guardar: " );
 
-    // 2. Persistir localmente para obtener el ID de la base de datos
     Emergencia guardada = emergenciaRepository.save(emergencia);
 
-    // 3. Iniciar el proceso en Bonita pasando TODOS los atributos requeridos por el Contrato
+
     try {
         Long caseId = bonitaService.iniciarInstanciaEmergencia(dto,guardada.getId());
-
-        // 4. Setear el caseId (JPA lo persistirá automáticamente al hacer commit)
         guardada.setCaseId(caseId);
 
     } catch (Exception e) {
@@ -112,9 +105,7 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
                 .collect(Collectors.toList());
     }
 
-    private Emergencia instanciarPorTipo(EmergenciaRequestDTO dto) {
-        return dto.aEntidad();
-    }
+
 
     public EmergenciaResponseDTO toResponseDTO(Emergencia emergencia) {
         EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder = EmergenciaResponseDTO.builder()
