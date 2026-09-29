@@ -14,20 +14,6 @@
         Registro directo de incidentes graves para alertar y solicitar asistencia al Centro Coordinador Regional.
       </p>
     </div>
-
-    <!-- Active Municipality Badge -->
-    <div class="flex items-center gap-3 bg-surface-container-low p-3 rounded-lg border border-slate-200">
-      <div class="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center">
-        <span class="material-symbols-outlined text-[24px]">location_city</span>
-      </div>
-      <div>
-        <div class="text-xs uppercase font-mono font-bold text-slate-500">Dependencia Activa</div>
-        <div class="text-sm font-bold text-[#0b192c]">Defensa Civil Municipal</div>
-        <div class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Conexión Estable
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- Section 1: Formulario Declarar Nueva Emergencia -->
@@ -38,7 +24,7 @@
         <h2 class="text-xl font-bold text-[#0b192c]">Declarar Nueva Emergencia</h2>
       </div>
       <p class="text-xs sm:text-sm text-slate-500 mt-1">
-        Complete los datos iniciales para disparar la instancia de proceso en Bonita BPM y convocar al Centro Coordinador.
+        Complete los datos iniciales para convocar al Centro Coordinador.
       </p>
     </div>
 
@@ -94,24 +80,6 @@
               <option value="MEDIA">Media (Refuerzo sectorial)</option>
               <option value="ALTA">Alta (Urgencia operacional)</option>
               <option value="CRITICO">Crítica / Alerta Roja (Catástrofe)</option>
-            </select>
-            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[20px]">
-              expand_more
-            </span>
-          </div>
-        </div>
-
-        <!-- Municipio Emisor -->
-        <div>
-          <label class="block text-xs font-mono uppercase font-semibold text-slate-600 mb-1.5">
-            Municipio Afectado <span class="text-red-500">*</span>
-          </label>
-          <div class="relative">
-            <select formControlName="municipioId"
-                    class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent font-medium">
-              <option *ngFor="let m of municipios" [ngValue]="m.id">
-                {{ m.nombre }}
-              </option>
             </select>
             <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[20px]">
               expand_more
@@ -214,7 +182,7 @@
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
         <div class="flex items-center gap-2 text-xs text-slate-500">
           <span class="material-symbols-outlined text-[18px] text-secondary">verified_user</span>
-          <span>Se generará una instancia en Bonita BPM asignada al Centro Coordinador.</span>
+          <span>Se generará una instancia asignada al Centro Coordinador.</span>
         </div>
 
         <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -288,7 +256,7 @@
             <th class="py-3 px-4">Tipo & Zona</th>
             <th class="py-3 px-4">Gravedad</th>
             <th class="py-3 px-4">Lotes</th>
-            <th class="py-3 px-4">Estado Bonita</th>
+            <th class="py-3 px-4">Estado</th>
             <th class="py-3 px-4 text-right rounded-r">Acción</th>
           </tr>
         </thead>
