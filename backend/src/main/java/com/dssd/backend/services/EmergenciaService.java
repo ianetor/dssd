@@ -20,17 +20,19 @@ import java.util.stream.Collectors;
 public class EmergenciaService {
 
     private final EmergenciaRepository emergenciaRepository;
-
     private final LoteNecesidadRepository loteNecesidadRepository;
+    private final BonitaService bonitaService;
 
     public EmergenciaService(EmergenciaRepository emergenciaRepository,
-                             LoteNecesidadRepository loteNecesidadRepository) {
+                             LoteNecesidadRepository loteNecesidadRepository,
+                             BonitaService bonitaService) {
         this.emergenciaRepository = emergenciaRepository;
         this.loteNecesidadRepository = loteNecesidadRepository;
+        this.bonitaService = bonitaService;
     }
 
     public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
-        Emergencia emergencia = instanciarPorTipo(dto); //crearInstancia
+        Emergencia emergencia = instanciarPorTipo(dto);
 
         emergencia.setNivelGravedad(dto.getNivelGravedad());
         emergencia.setZonaAfectada(dto.getZonaAfectada());
@@ -38,7 +40,23 @@ public class EmergenciaService {
         emergencia.setEstado("REGISTRADA");
         emergencia.setMunicipioNombre(dto.getMunicipioNombre());
 
+        // 1. Guardar primero en BD para obtener el id de la Emergencia
         Emergencia guardada = emergenciaRepository.save(emergencia);
+
+        // 2. Iniciar el proceso en Bonita y obtener el caseId
+        try {
+            Long caseId = bonitaService.iniciarInstanciaEmergencia(
+                guardada.getId(),
+                guardada.getNivelGravedad(),
+                guardada.getZonaAfectada()
+            );
+            // 3. Setear el caseId en la entidad y volver a guardar
+            guardada.setCaseId(caseId);
+            guardada = emergenciaRepository.save(guardada);
+        } catch (Exception e) {
+            System.err.println("Error al iniciar instancia en Bonita: " + e.getMessage());
+        }
+
         return toResponseDTO(guardada);
     }
 
@@ -95,12 +113,13 @@ public class EmergenciaService {
     }
 
     private Emergencia instanciarPorTipo(EmergenciaRequestDTO dto) {
-        return dto.aEntidad(); 
+        return dto.aEntidad();
     }
 
     public EmergenciaResponseDTO toResponseDTO(Emergencia emergencia) {
         EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder = EmergenciaResponseDTO.builder()
                 .id(emergencia.getId())
+                .caseId(emergencia.getCaseId())
                 .nivelGravedad(emergencia.getNivelGravedad())
                 .zonaAfectada(emergencia.getZonaAfectada())
                 .descripcion(emergencia.getDescripcion())
@@ -112,7 +131,7 @@ public class EmergenciaService {
         List<LoteResponseDTO> lotesDTO = (emergencia.getLotes() != null)
                 ? emergencia.getLotes().stream().map(this::toLoteResponseDTO).collect(Collectors.toList())
                 : new ArrayList<>();
-                
+
         builder.lotes(lotesDTO);
 
         return builder.build();

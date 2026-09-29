@@ -84,9 +84,9 @@ public class BonitaService {
     public String getProcessDefinitionId(String processName, String processVersion, HttpHeaders headers) {
         String url = bonitaUrl + "/API/bpm/process?p=0&c=10&f=name=" + processName + "&f=version=" + processVersion;
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-        
+
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class);
-        
+
         try {
             JsonNode root = objectMapper.readTree(response.getBody());
             if (root.isArray() && root.size() > 0) {
@@ -98,26 +98,21 @@ public class BonitaService {
         return null;
     }
 
-    // 3. Crear instancia de la emergencia y setear variables
-    public String iniciarInstanciaEmergencia(Long emergenciaId, String nivelGravedad, String zonaAfectada) {
+    public Long iniciarInstanciaEmergencia(Long emergenciaId, String nivelGravedad, String zonaAfectada) {
         HttpHeaders headers = login();
-        
-        // Buscamos el ID interno de "Proceso1" con versión "1.0"
+
         String processId = getProcessDefinitionId("Proceso1", "1.0", headers);
-        
         if (processId == null) {
             throw new RuntimeException("No se encontró el proceso 'Proceso1' desplegado en Bonita");
         }
 
         String caseUrl = bonitaUrl + "/API/bpm/case";
 
-        // Estructura del body para crear el caso en Bonita
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("processDefinitionId", processId);
 
-        // Variables de proceso iniciales
         List<Map<String, Object>> variables = new ArrayList<>();
-        
+
         Map<String, Object> var1 = new HashMap<>();
         var1.put("name", "emergenciaId");
         var1.put("value", emergenciaId);
@@ -138,7 +133,13 @@ public class BonitaService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(caseUrl, entity, String.class);
 
-        return response.getBody(); // Retorna el JSON con el ID de la instancia creada
+        // Parsear la respuesta para obtener el id del caso en Bonita (caseId)
+        try {
+            JsonNode root = objectMapper.readTree(response.getBody());
+            return root.get("id").asLong();
+        } catch (Exception e) {
+            throw new RuntimeException("Error al parsear la respuesta del caseId de Bonita", e);
+        }
     }
 
     public String listProcesses() {
