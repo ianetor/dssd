@@ -32,6 +32,8 @@ export class EmergenciaDetailComponent implements OnInit {
   error = '';
   isSubmitting = false;
   publicadoExitoso = false;
+  mostrarConfirmacion = false;
+  lotePendienteDeEliminar: number | null = null;
 
   // Lotes listados localmente para desglose antes de publicar
   lotesDesglosados: LoteItem[] = [];
@@ -169,7 +171,28 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   eliminarLote(index: number): void {
+    const lote = this.lotesDesglosados[index];
+    if (!lote) {
+      return;
+    }
+
+    this.lotePendienteDeEliminar = index;
+    this.mostrarConfirmacion = true;
+  }
+
+  cerrarConfirmacion(): void {
+    this.mostrarConfirmacion = false;
+    this.lotePendienteDeEliminar = null;
+  }
+
+  confirmarEliminacion(): void {
+    const index = this.lotePendienteDeEliminar;
+    if (index === null) {
+      return;
+    }
+
     this.lotesDesglosados.splice(index, 1);
+    this.cerrarConfirmacion();
     this.cd.detectChanges();
   }
 

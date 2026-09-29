@@ -14,20 +14,6 @@
         Consorcios, ofertas parciales y gestión de versiones de recursos comprometidos.
       </p>
     </div>
-
-    <!-- Active Entity Badge -->
-    <div class="flex items-center gap-3 bg-surface-container-low p-3 rounded-lg border border-slate-200">
-      <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold">
-        <span class="material-symbols-outlined text-[24px]">volunteer_activism</span>
-      </div>
-      <div>
-        <div class="text-xs uppercase font-mono font-bold text-slate-500">Organización Acreditada</div>
-        <div class="text-sm font-bold text-[#0b192c]">Cruz Roja Argentina</div>
-        <div class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Habilitación Nacional Vigente
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- Hero Convocatoria Activa con Reloj de Bonita -->
@@ -51,7 +37,7 @@
       <!-- Bonita Timer Countdown Clock -->
       <div class="bg-surface-container-low p-4 rounded-xl border border-slate-200 flex flex-col items-start md:items-end gap-1 shrink-0">
         <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-          Ventana Temporal (Timer Bonita BPM)
+          Ventana Temporal
         </span>
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
@@ -227,7 +213,7 @@
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
         <div class="text-xs text-slate-500 flex items-center gap-1.5">
           <span class="material-symbols-outlined text-secondary text-[18px]">check_circle</span>
-          <span>La oferta se persiste en la BD local de la app y podrá ser modificada mientras el reloj esté activo.</span>
+          <span>La oferta podrá ser modificada mientras el reloj esté activo.</span>
         </div>
 
         <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -325,7 +311,7 @@
                   <span>Rectificar</span>
                 </button>
                 <button type="button"
-                        (click)="eliminarOferta(ofr.id)"
+                  (click)="eliminarOferta(ofr.id)"
                         title="Retirar Oferta"
                         class="p-1 text-red-600 hover:bg-red-50 rounded transition-all">
                   <span class="material-symbols-outlined text-[16px]">delete</span>
@@ -335,6 +321,42 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <div *ngIf="mostrarConfirmacion"
+       class="fixed inset-0 z-50 flex items-center justify-center bg-[#0b192c]/55 px-4"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="confirmacion-oferta-titulo"
+       (click)="cerrarConfirmacion()">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+         (click)="$event.stopPropagation()">
+      <div class="flex items-start gap-4">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+          <span class="material-symbols-outlined text-[24px]">delete_forever</span>
+        </div>
+        <div>
+          <h2 id="confirmacion-oferta-titulo" class="text-lg font-bold text-[#0b192c]">
+            ¿Retirar esta oferta?
+          </h2>
+          <p class="mt-1 text-sm leading-relaxed text-slate-600">
+            La oferta <strong class="text-slate-800">{{ ofertaPendienteDeEliminar }}</strong> dejará de estar disponible para la convocatoria.
+          </p>
+        </div>
+      </div>
+      <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button type="button"
+                (click)="cerrarConfirmacion()"
+                class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+          Cancelar
+        </button>
+        <button type="button"
+                (click)="confirmarEliminacion()"
+                class="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow transition hover:bg-red-700">
+          Sí, retirar oferta
+        </button>
+      </div>
     </div>
   </div>
 </div>

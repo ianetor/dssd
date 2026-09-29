@@ -32,6 +32,8 @@ export class PortalOngComponent implements OnInit, OnDestroy {
   editandoId: string | null = null;
   feedbackMensaje = '';
   feedbackTitulo = '';
+  mostrarConfirmacion = false;
+  ofertaPendienteDeEliminar: string | null = null;
 
   // Timer regresivo simulación Bonita BPM
   segundosRestantes = 3 * 3600 + 42 * 60 + 19;
@@ -219,12 +221,26 @@ export class PortalOngComponent implements OnInit, OnDestroy {
   }
 
   eliminarOferta(id: string): void {
-    if (confirm(`¿Confirma cancelar y retirar la oferta ${id}?`)) {
-      this.ofertaService.eliminarOferta(id);
-      if (this.editandoId === id) {
-        this.cancelarEdicion();
-      }
-      this.cd.detectChanges();
+    this.ofertaPendienteDeEliminar = id;
+    this.mostrarConfirmacion = true;
+  }
+
+  cerrarConfirmacion(): void {
+    this.mostrarConfirmacion = false;
+    this.ofertaPendienteDeEliminar = null;
+  }
+
+  confirmarEliminacion(): void {
+    const id = this.ofertaPendienteDeEliminar;
+    if (!id) {
+      return;
     }
+
+    this.ofertaService.eliminarOferta(id);
+    if (this.editandoId === id) {
+      this.cancelarEdicion();
+    }
+    this.cerrarConfirmacion();
+    this.cd.detectChanges();
   }
 }

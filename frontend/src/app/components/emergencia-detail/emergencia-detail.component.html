@@ -242,7 +242,7 @@
             </div>
           </div>
           <span class="text-xs font-mono font-bold text-secondary uppercase tracking-wider">
-            STATUS: LISTO PARA DESPACHO
+            ESTADO: LISTO PARA DESPACHO
           </span>
         </div>
       </div>
@@ -264,7 +264,7 @@
         <!-- Timer / Plazo selector para Bonita BPM -->
         <div class="space-y-1.5">
           <label class="text-xs font-mono uppercase font-semibold text-slate-700 flex items-center justify-between">
-            <span>Plazo de Recepción (Timer Bonita)</span>
+            <span>Plazo de Recepción</span>
             <span class="material-symbols-outlined text-[16px] text-secondary">schedule</span>
           </label>
           <select [(ngModel)]="timerSeleccionado"
@@ -275,7 +275,7 @@
             <option value="24">24 horas (Aprovisionamiento Escalonado)</option>
           </select>
           <p class="text-[11px] text-slate-500 leading-tight">
-            Al vencer este temporizador en Bonita BPM, el motor cerrará la recepción para pasar a validación de ofertas.
+            Al vencer este temporizador, el motor cerrará la recepción para pasar a validación de ofertas.
           </p>
         </div>
 
@@ -283,7 +283,7 @@
         <div class="p-4 bg-surface-container-low rounded-lg border border-slate-200 space-y-2 text-xs">
           <div class="flex items-center gap-1.5 font-mono uppercase font-bold text-slate-700 pb-1 border-b border-slate-200">
             <span class="material-symbols-outlined text-[16px] text-secondary">summarize</span>
-            <span>Resumen del Proceso BPM</span>
+            <span>Resumen del Proceso</span>
           </div>
           <div class="flex justify-between py-1 border-b border-slate-200 text-slate-600">
             <span>Emergencia:</span>
@@ -364,6 +364,42 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="mostrarConfirmacion"
+       class="fixed inset-0 z-50 flex items-center justify-center bg-[#0b192c]/55 px-4"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="confirmacion-lote-titulo"
+       (click)="cerrarConfirmacion()">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+         (click)="$event.stopPropagation()">
+      <div class="flex items-start gap-4">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+          <span class="material-symbols-outlined text-[24px]">delete_forever</span>
+        </div>
+        <div>
+          <h2 id="confirmacion-lote-titulo" class="text-lg font-bold text-[#0b192c]">
+            ¿Eliminar este lote?
+          </h2>
+          <p class="mt-1 text-sm leading-relaxed text-slate-600">
+            El lote seleccionado se quitará del desglose de necesidades y no podrá recibir ofertas.
+          </p>
+        </div>
+      </div>
+      <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button type="button"
+                (click)="cerrarConfirmacion()"
+                class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+          Cancelar
+        </button>
+        <button type="button"
+                (click)="confirmarEliminacion()"
+                class="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow transition hover:bg-red-700">
+          Sí, eliminar lote
+        </button>
       </div>
     </div>
   </div>
