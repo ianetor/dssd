@@ -27,6 +27,11 @@
     </div>
   </div>
 
+  <div *ngIf="error" class="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800" role="alert">
+    <span class="material-symbols-outlined text-red-600">error</span>
+    <span>{{ error }}</span>
+  </div>
+
   <!-- Priority Incoming Dispatch Banner -->
   <div class="relative overflow-hidden bg-[#0b192c] text-white rounded-xl p-6 sm:p-8 shadow-md border border-slate-800">
     <div class="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -303,14 +308,14 @@
         <div class="space-y-3 pt-2">
           <button type="button"
                   (click)="publicarConvocatoriaBonita()"
-                  [disabled]="isSubmitting || publicadoExitoso"
+              [disabled]="isSubmitting || publicadoExitoso || esFallback"
                   [ngClass]="publicadoExitoso ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#ea580c] hover:bg-[#c2410c]'"
                   class="w-full py-3.5 px-4 text-white text-sm font-bold rounded-lg shadow flex items-center justify-center gap-2 transition-all disabled:opacity-50">
             <span *ngIf="isSubmitting" class="material-symbols-outlined text-[20px] animate-spin">refresh</span>
             <span *ngIf="!isSubmitting && !publicadoExitoso" class="material-symbols-outlined text-[20px]">send</span>
             <span *ngIf="publicadoExitoso" class="material-symbols-outlined text-[20px]">verified</span>
             <span>
-              {{ isSubmitting ? 'Instanciando en Bonita...' : (publicadoExitoso ? 'Convocatoria Publicada en Bonita' : 'Publicar Convocatoria a la Red de ONGs') }}
+              {{ isSubmitting ? 'Publicando convocatoria...' : (publicadoExitoso ? 'Convocatoria ya publicada' : 'Publicar Convocatoria a la Red de ONGs') }}
             </span>
           </button>
 

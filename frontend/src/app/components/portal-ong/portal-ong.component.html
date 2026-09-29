@@ -16,21 +16,30 @@
     </div>
   </section>
 
+  <div *ngIf="errorConvocatoria" class="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800" role="alert">
+    {{ errorConvocatoria }}
+  </div>
+
+  <div *ngIf="!loadingConvocatoria && !emergenciaActiva" class="rounded-xl border border-amber-300 bg-amber-50 p-6 text-amber-900">
+    <h2 class="font-bold">No hay convocatorias abiertas</h2>
+    <p class="mt-1 text-sm">Cuando el Centro Coordinador publique una emergencia, sus lotes aparecerán aquí.</p>
+  </div>
+
   <!-- Hero Convocatoria Activa con Reloj de Bonita -->
-  <div class="bg-surface-container-lowest rounded-xl p-6 sm:p-8 shadow-sm border-l-4 border-secondary border-y border-r border-slate-200 space-y-6">
+  <div *ngIf="emergenciaActiva" class="bg-surface-container-lowest rounded-xl p-6 sm:p-8 shadow-sm border-l-4 border-secondary border-y border-r border-slate-200 space-y-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
           <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-blue-600 text-white uppercase font-bold tracking-wider">
             Convocatoria Activa
           </span>
-          <span class="text-xs font-mono text-slate-500 font-semibold">Protocolo #EMG-2024-001</span>
+          <span class="text-xs font-mono text-slate-500 font-semibold">Protocolo #EMG-{{ emergenciaActiva.id }}</span>
         </div>
         <h2 class="text-xl sm:text-2xl font-bold text-[#0b192c]">
-          Inundación Ribereña — Municipio de San Nicolás
+          {{ emergenciaActiva.tipoEmergencia }} — {{ emergenciaActiva.zonaAfectada }}
         </h2>
         <p class="text-sm text-slate-600 max-w-3xl leading-relaxed">
-          Crecida del río con familias anegadas. Se solicitan refuerzos y recursos para centros de evacuados, asistencia médica in situ y provisiones de primera necesidad.
+          {{ emergenciaActiva.descripcion }}
         </p>
       </div>
 
@@ -66,7 +75,7 @@
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-secondary text-white">
-                {{ lote.id | uppercase }}
+                LOT-{{ lote.id }}
               </span>
               <span class="material-symbols-outlined text-secondary text-[22px]">{{ lote.icono }}</span>
             </div>

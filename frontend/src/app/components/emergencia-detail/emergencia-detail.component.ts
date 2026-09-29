@@ -32,6 +32,7 @@ export class EmergenciaDetailComponent implements OnInit {
   error = '';
   isSubmitting = false;
   publicadoExitoso = false;
+  esFallback = false;
   mostrarConfirmacion = false;
   lotePendienteDeEliminar: number | null = null;
 
@@ -66,6 +67,8 @@ export class EmergenciaDetailComponent implements OnInit {
     this.emergenciaService.obtenerPorId(id).subscribe({
       next: (emergencia) => {
         this.emergencia = emergencia;
+        this.esFallback = false;
+        this.publicadoExitoso = emergencia.estado === 'CONVOCATORIA_ABIERTA';
         this.inicializarLotesDesdeEmergencia(emergencia);
         this.loading = false;
         this.cd.detectChanges();
@@ -73,6 +76,8 @@ export class EmergenciaDetailComponent implements OnInit {
       error: () => {
         this.error = `No se pudo conectar con el servidor para la emergencia #${id}. Mostrando plantilla operativa de contingencia.`;
         this.emergencia = this.generarEmergenciaFallback(id);
+        this.esFallback = true;
+        this.publicadoExitoso = false;
         this.inicializarLotesDesdeEmergencia(this.emergencia);
         this.loading = false;
         this.cd.detectChanges();
@@ -87,9 +92,13 @@ export class EmergenciaDetailComponent implements OnInit {
         this.listaEmergencias = list;
         if (list && list.length > 0) {
           this.emergencia = list[0];
+          this.esFallback = false;
+          this.publicadoExitoso = this.emergencia.estado === 'CONVOCATORIA_ABIERTA';
           this.inicializarLotesDesdeEmergencia(this.emergencia);
         } else {
           this.emergencia = this.generarEmergenciaFallback(1);
+          this.esFallback = true;
+          this.publicadoExitoso = false;
           this.inicializarLotesDesdeEmergencia(this.emergencia);
         }
         this.loading = false;
@@ -97,6 +106,8 @@ export class EmergenciaDetailComponent implements OnInit {
       },
       error: () => {
         this.emergencia = this.generarEmergenciaFallback(1);
+        this.esFallback = true;
+        this.publicadoExitoso = false;
         this.inicializarLotesDesdeEmergencia(this.emergencia);
         this.loading = false;
         this.cd.detectChanges();
@@ -107,7 +118,13 @@ export class EmergenciaDetailComponent implements OnInit {
   inicializarLotesDesdeEmergencia(emg: Emergencia): void {
     this.lotesDesglosados = [];
     if (emg.lotes && emg.lotes.length > 0) {
-      emg.lotes.forEach((l) => {
+      const lotesUnicos = new Map(
+        emg.lotes.map((l) => {
+          const nombreNormalizado = l.tipoRecurso.replace(/(?: \(unidades\))+$/g, '');
+          return [`${nombreNormalizado}|${l.cantidadRequerida}`, { ...l, tipoRecurso: nombreNormalizado }];
+        })
+      );
+      lotesUnicos.forEach((l) => {
         this.lotesDesglosados.push({
           nombre: l.tipoRecurso,
           cantidad: l.cantidadRequerida,
@@ -206,6 +223,11 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   publicarConvocatoriaBonita(): void {
+    if (this.esFallback) {
+      this.error = 'No se puede publicar una emergencia de contingencia. Verifique la conexión con el backend y vuelva a cargar la emergencia.';
+      return;
+    }
+
     if (!this.emergencia?.id) {
       this.error = 'No hay una emergencia seleccionada para publicar.';
       return;
@@ -216,11 +238,17 @@ export class EmergenciaDetailComponent implements OnInit {
       return;
     }
 
+    if (this.emergencia.estado === 'CONVOCATORIA_ABIERTA') {
+      this.publicadoExitoso = true;
+      this.error = 'Esta convocatoria ya fue publicada y no se volverá a insertar.';
+      return;
+    }
+
     this.isSubmitting = true;
     this.error = '';
 
     const payload: LotePayload[] = this.lotesDesglosados.map((l) => ({
-      tipoRecurso: `${l.nombre} (${l.unidad})`,
+      tipoRecurso: l.nombre.endsWith(` (${l.unidad})`) ? l.nombre : `${l.nombre} (${l.unidad})`,
       cantidadRequerida: l.cantidad,
     }));
 
@@ -231,13 +259,13 @@ export class EmergenciaDetailComponent implements OnInit {
         this.publicadoExitoso = true;
         this.cd.detectChanges();
       },
-      error: () => {
-        // En caso de que el backend no responda o devuelva mock, simulamos el éxito para evaluación
+      error: (err) => {
         this.isSubmitting = false;
-        this.publicadoExitoso = true;
-        if (this.emergencia) {
-          this.emergencia.estado = 'CONVOCATORIA_PUBLICADA';
-        }
+        this.publicadoExitoso = false;
+        const detalle = err?.status
+          ? ` (HTTP ${err.status})`
+          : ' (backend no disponible o error de red)';
+        this.error = `No se pudo publicar la convocatoria${detalle}. Verifique que el backend esté activo.`;
         this.cd.detectChanges();
       },
     });

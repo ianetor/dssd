@@ -46,6 +46,10 @@ public class EmergenciaService {
         Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
                 .orElseThrow(() -> new NoSuchElementException("Emergencia no encontrada con ID: " + emergenciaId));
 
+        if ("CONVOCATORIA_ABIERTA".equals(emergencia.getEstado())) {
+            return toResponseDTO(emergencia);
+        }
+
         emergencia.setEstado("CONVOCATORIA_ABIERTA");
 
         if (lotesDto != null && !lotesDto.isEmpty()) {
