@@ -41,11 +41,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/distribuidosBD
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 1212
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create
       SPRING_JPA_SHOW_SQL: "true"
       BONITA_URL: http://host.docker.internal:8081/bonita
-      BONITA_USERNAME: install
-      BONITA_PASSWORD: install
+      BONITA_USERNAME: anthony.nichols
+      BONITA_PASSWORD: bpm
     volumes:
       - ./backend:/app
       - maven_cache:/root/.m2

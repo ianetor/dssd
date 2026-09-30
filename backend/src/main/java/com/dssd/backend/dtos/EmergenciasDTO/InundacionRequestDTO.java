@@ -13,6 +13,7 @@ public class InundacionRequestDTO extends EmergenciaRequestDTO{
     @Override
     public Emergencia aEntidad() {
         Inundacion inundacion = new Inundacion();
+        cargarCamposComunes(inundacion);
         inundacion.setMilimetrosAgua(this.milimetrosAgua);
         return inundacion;
     }

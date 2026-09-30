@@ -20,25 +20,36 @@ import java.util.stream.Collectors;
 public class EmergenciaService {
 
     private final EmergenciaRepository emergenciaRepository;
-
     private final LoteNecesidadRepository loteNecesidadRepository;
+    private final BonitaService bonitaService;
 
     public EmergenciaService(EmergenciaRepository emergenciaRepository,
-                             LoteNecesidadRepository loteNecesidadRepository) {
+                             LoteNecesidadRepository loteNecesidadRepository,
+                             BonitaService bonitaService)
+    {
         this.emergenciaRepository = emergenciaRepository;
         this.loteNecesidadRepository = loteNecesidadRepository;
+        this.bonitaService = bonitaService;
     }
 
-    public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
-        Emergencia emergencia = instanciarPorTipo(dto); //crearInstancia
+    @Transactional
+public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
+    // 1. Instanciar y setear datos del DTO
+    Emergencia emergencia = dto.aEntidad();
+    System.out.println("Emergencia antes de guardar: " );
 
-        emergencia.setNivelGravedad(dto.getNivelGravedad());
-        emergencia.setZonaAfectada(dto.getZonaAfectada());
-        emergencia.setDescripcion(dto.getDescripcion());
-        emergencia.setEstado("REGISTRADA");
-        emergencia.setMunicipioNombre(dto.getMunicipioNombre());
+    Emergencia guardada = emergenciaRepository.save(emergencia);
 
-        Emergencia guardada = emergenciaRepository.save(emergencia);
+
+    try {
+        Long caseId = bonitaService.iniciarInstanciaEmergencia(dto,guardada.getId());
+        guardada.setCaseId(caseId);
+
+    } catch (Exception e) {
+        // Lanza excepción para hacer Rollback en la BD local si Bonita falla
+        throw new RuntimeException("No se pudo iniciar el flujo de proceso en Bonita: " + e.getMessage(), e);
+    }
+
         return toResponseDTO(guardada);
     }
 
@@ -67,6 +78,16 @@ public class EmergenciaService {
         }
 
         Emergencia actualizada = emergenciaRepository.save(emergencia);
+
+        // AVANZAR TAREA EN BONITA
+        try {
+            if (actualizada.getCaseId() != null) {
+                bonitaService.avanzarPublicacionConvocatoria(actualizada.getCaseId());
+            }
+        } catch (Exception e) {
+            System.err.println("Error al avanzar tarea en Bonita: " + e.getMessage());
+        }
+
         return toResponseDTO(actualizada);
     }
 
@@ -98,13 +119,12 @@ public class EmergenciaService {
                 .collect(Collectors.toList());
     }
 
-    private Emergencia instanciarPorTipo(EmergenciaRequestDTO dto) {
-        return dto.aEntidad(); 
-    }
+
 
     public EmergenciaResponseDTO toResponseDTO(Emergencia emergencia) {
         EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder = EmergenciaResponseDTO.builder()
                 .id(emergencia.getId())
+                .caseId(emergencia.getCaseId())
                 .nivelGravedad(emergencia.getNivelGravedad())
                 .zonaAfectada(emergencia.getZonaAfectada())
                 .descripcion(emergencia.getDescripcion())
@@ -116,7 +136,7 @@ public class EmergenciaService {
         List<LoteResponseDTO> lotesDTO = (emergencia.getLotes() != null)
                 ? emergencia.getLotes().stream().map(this::toLoteResponseDTO).collect(Collectors.toList())
                 : new ArrayList<>();
-                
+
         builder.lotes(lotesDTO);
 
         return builder.build();

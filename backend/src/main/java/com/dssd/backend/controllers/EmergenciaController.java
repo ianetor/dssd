@@ -28,7 +28,8 @@ public class EmergenciaController {
     @PostMapping
     @CrossOrigin(origins = "http://localhost:4200", allowCredentials = "true")
     public ResponseEntity<EmergenciaResponseDTO> registrarEmergencia(@RequestBody EmergenciaRequestDTO requestDTO) {
-
+        System.out.println("DTO Recibido: " + requestDTO.toString()); 
+        System.out.println("Tipo de Emergencia: " + requestDTO.getTipoEmergencia());
         EmergenciaResponseDTO creada = emergenciaService.crearEmergencia(requestDTO);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(creada);

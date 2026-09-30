@@ -12,8 +12,10 @@ public class IncendioRequestDTO extends EmergenciaRequestDTO {
     @Override
     public Emergencia aEntidad() {
         Incendio incendio = new Incendio();
+        cargarCamposComunes(incendio);
         incendio.setHectareasAfectadas(this.hectareasAfectadas);
         return incendio;
     }
+  
 }
 

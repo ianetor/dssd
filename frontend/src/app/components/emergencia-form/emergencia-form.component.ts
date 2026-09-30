@@ -35,7 +35,6 @@ export class EmergenciaFormComponent {
   form = this.fb.group({
     tipoEmergencia: ['INUNDACION', Validators.required],
     nivelGravedad: ['ALTA', Validators.required],
-    municipioId: [null as number | null, Validators.required],
     zonaAfectada: ['', Validators.required],
     descripcion: ['', Validators.required],
     hectareasAfectadas: [null as number | null],
@@ -65,6 +64,12 @@ export class EmergenciaFormComponent {
  
 
   onSubmit(): void {
+    Object.keys(this.form.controls).forEach(key => {
+    const control = this.form.get(key);
+    if (control?.invalid) {
+      console.log('Campo inválido:', key, control.errors);
+    }
+    });
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.errorMessage = 'Por favor complete todos los campos obligatorios (*).';

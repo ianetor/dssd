@@ -24,7 +24,7 @@ import lombok.Setter;
     @JsonSubTypes.Type(value = InundacionRequestDTO.class, name = "INUNDACION"),
     @JsonSubTypes.Type(value = TerremotoRequestDTO.class, name = "TERREMOTO")
 })
-public abstract class EmergenciaRequestDTO {
+public  abstract class EmergenciaRequestDTO {
     private String tipoEmergencia;
     private String nivelGravedad;
     private String zonaAfectada;
@@ -36,4 +36,17 @@ public abstract class EmergenciaRequestDTO {
     private Double magnitudRichter;
 
     public abstract Emergencia aEntidad();
+
+    public String getTipoEmergencia(){
+        return tipoEmergencia;
+    }
+
+    protected void cargarCamposComunes(Emergencia emergencia) {
+        emergencia.setNivelGravedad(this.nivelGravedad);
+        emergencia.setZonaAfectada(this.zonaAfectada);
+        emergencia.setDescripcion(this.descripcion);
+        emergencia.setMunicipioNombre(this.municipioNombre);
+        emergencia.setEstado("REGISTRADA");
+    }
+
 }

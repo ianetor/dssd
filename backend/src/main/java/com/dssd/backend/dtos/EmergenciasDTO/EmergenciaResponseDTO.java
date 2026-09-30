@@ -17,6 +17,7 @@ import com.dssd.backend.dtos.LoteResponseDTO;
 @AllArgsConstructor
 @Builder
 public class EmergenciaResponseDTO {
+    private Long caseId;
     private Long id;
     private String tipoEmergencia;
     private String nivelGravedad;
