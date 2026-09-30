@@ -97,14 +97,14 @@ public class BonitaService {
 
         try {
             ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class);
-            
+
             // 1. Obtener el body como String explícito
             String jsonBody = (String) response.getBody();
 
             if (jsonBody != null) {
                 // 2. Pasar el String directamente a readTree
                 JsonNode root = objectMapper.readTree(jsonBody);
-                
+
                 if (root.isArray() && !root.isEmpty()) {
                     return root.get(0).get("id").asText();
                 }
@@ -164,11 +164,11 @@ public class BonitaService {
     }
 
     public String listPendingTasks() {
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("p", "0");
-        params.put("c", "100");
-        params.put("f", "state=ready,state=claimed,state=started");
-        return get("/API/bpm/task", params);
+        HttpHeaders headers = login();
+        String url = bonitaUrl + "/API/bpm/humanTask?p=0&c=100&f=state=ready";
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class);
+        return response.getBody();
     }
 
     public String listUsers() {
@@ -238,6 +238,90 @@ public class BonitaService {
             login();
             return request.get();
         }
+    }
+
+    public void avanzarPublicacionConvocatoria(Long caseId) {
+        if (caseId == null) return;
+
+        HttpHeaders headers = login();
+
+        String searchTaskUrl = bonitaUrl + "/API/bpm/humanTask?p=0&c=10&f=caseId=" + caseId + "&f=state=ready";
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(searchTaskUrl, HttpMethod.GET, requestEntity, String.class);
+            System.out.println("Tareas encontradas para caseId=" + caseId + ": " + response.getBody());
+            JsonNode root = objectMapper.readTree(response.getBody());
+
+            if (root.isArray() && root.size() > 0) {
+                String taskId = root.get(0).get("id").asText();
+                String taskName = root.get(0).get("name").asText();
+                System.out.println("Tarea: name=" + taskName + ", taskId=" + taskId);
+
+                // Obtener userId del usuario logueado
+                String userId = getUserId(headers);
+                System.out.println("UserId obtenido: " + userId);
+
+                // Asignar la tarea al usuario via PUT /API/bpm/humanTask/{taskId}
+                if (userId != null) {
+                    try {
+                        String assignUrl = bonitaUrl + "/API/bpm/humanTask/" + taskId;
+                        String assignJson = "{\"assigned_id\":" + userId + "}";
+                        HttpEntity<String> assignEntity = new HttpEntity<>(assignJson, headers);
+                        restTemplate.put(assignUrl, assignEntity);
+                        System.out.println("Tarea " + taskId + " asignada al userId=" + userId);
+                    } catch (Exception ex) {
+                        System.err.println("Error al asignar tarea: " + ex.getMessage());
+                    }
+                }
+
+                // Ejecutar/completar la tarea
+                String execUrl = bonitaUrl + "/API/bpm/userTask/" + taskId + "/execution?assign=true";
+                if (userId != null) {
+                    execUrl += "&user=" + userId;
+                }
+                HttpEntity<String> execEntity = new HttpEntity<>("{}", headers);
+                ResponseEntity<String> execResp = restTemplate.postForEntity(execUrl, execEntity, String.class);
+                System.out.println("Tarea " + taskId + " ejecutada con status=" + execResp.getStatusCode());
+            } else {
+                System.out.println("No se encontraron tareas pendientes para caseId=" + caseId);
+            }
+        } catch (Exception e) {
+            System.err.println("Error al avanzar tarea en Bonita para caseId=" + caseId + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private String getUserId(HttpHeaders headers) {
+        // Intentar obtener el userId de la sesión actual
+        try {
+            String sessionUrl = bonitaUrl + "/API/system/session/unusedid";
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<String> resp = restTemplate.exchange(sessionUrl, HttpMethod.GET, entity, String.class);
+            JsonNode tree = objectMapper.readTree(resp.getBody());
+            if (tree.has("user_id")) {
+                String uid = tree.get("user_id").asText();
+                System.out.println("UserId obtenido de sesión Bonita: " + uid);
+                return uid;
+            }
+        } catch (Exception e) {
+            System.err.println("Error obteniendo sesión de Bonita: " + e.getMessage());
+        }
+
+        // Fallback: buscar por userName
+        try {
+            String url = bonitaUrl + "/API/identity/user?p=0&c=1&f=userName%3d" + username;
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            System.out.println("Respuesta identity/user: " + resp.getBody());
+            JsonNode tree = objectMapper.readTree(resp.getBody());
+            if (tree.isArray() && tree.size() > 0) {
+                return tree.get(0).get("id").asText();
+            }
+        } catch (Exception e) {
+            System.err.println("Error obteniendo ID del usuario " + username + ": " + e.getMessage());
+        }
+        return null;
     }
 
 }

@@ -74,6 +74,16 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
         }
 
         Emergencia actualizada = emergenciaRepository.save(emergencia);
+
+        // AVANZAR TAREA EN BONITA
+        try {
+            if (actualizada.getCaseId() != null) {
+                bonitaService.avanzarPublicacionConvocatoria(actualizada.getCaseId());
+            }
+        } catch (Exception e) {
+            System.err.println("Error al avanzar tarea en Bonita: " + e.getMessage());
+        }
+
         return toResponseDTO(actualizada);
     }
 
