@@ -1,9 +1,8 @@
 package com.dssd.backend.models;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +17,14 @@ public class Rol {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank
+    @Size(max = 50)
+    @Column(nullable = false, unique = true, length = 50)
     private String nombre;
+
+    @Size(max = 254)
+    @Column(length = 254)
     private String descripcion;
 
     public Rol(String nombre, String descripcion) {
