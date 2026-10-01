@@ -75,23 +75,20 @@ public class DomainPersistenceTest {
     }
 
         @Test
-    @DisplayName("Debe persistir OfertaAyuda con consorcio de ONGs representadas por nombre")
-    public void testPersistirOfertaAyudaConsorcio() {
+    @DisplayName("Debe persistir OfertaAyuda de una ONG identificada por nombre")
+    public void testPersistirOfertaAyuda() {
         // Arrange
         OfertaAyuda oferta = new OfertaAyuda();
         oferta.setEstado("PUBLICADA");
         oferta.setNivelHabilitacion(4);
         oferta.setRecursosBloqueados(false);
         oferta.setOngLider("cruz_roja");
-        oferta.getOngColaboradoras().add("caritas");
-        oferta.getOngColaboradoras().add("bomberos_voluntarios");
         // Act
         OfertaAyuda guardada = ofertaRepo.save(oferta);
         // Assert
         OfertaAyuda recuperada = ofertaRepo.findById(guardada.getId()).orElse(null);
         assertThat(recuperada).isNotNull();
         assertThat(recuperada.getOngLider()).isEqualTo("cruz_roja");
-        assertThat(recuperada.getOngColaboradoras()).containsExactly("caritas", "bomberos_voluntarios");
     }
 @Test
     @DisplayName("Debe persistir DetalleOferta vinculando OfertaAyuda y LoteNecesidad")

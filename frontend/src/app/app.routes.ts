@@ -29,8 +29,8 @@ export const routes: Routes = [
   },
   {
     path: 'coordinador',
-    component: EmergenciaDetailComponent,
-    canActivate: [authGuard, roleGuard(['COORDINADOR_REGIONAL'])],
+    redirectTo: 'emergencias',
+    pathMatch: 'full',
   },
   {
     path: 'emergencias/:id',
@@ -43,9 +43,14 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['REPRESENTANTE_ONG'])],
   },
   {
+    path: 'portal-ong/:id',
+    component: PortalOngComponent,
+    canActivate: [authGuard, roleGuard(['REPRESENTANTE_ONG'])],
+  },
+  {
     path: 'emergencias',
     component: EmergenciasListComponent,
-    canActivate: [authGuard, roleGuard(['COORDINADOR_REGIONAL', 'AUDITOR_DIRECTIVO'])],
+    canActivate: [authGuard, roleGuard(['COORDINADOR_REGIONAL', 'AUDITOR_DIRECTIVO', 'REPRESENTANTE_ONG'])],
   },
   {
     path: '**',

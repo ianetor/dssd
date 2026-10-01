@@ -10,6 +10,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoteRequestDTO {
+    @jakarta.validation.constraints.NotBlank
+    @jakarta.validation.constraints.Size(max = 255)
     private String tipoRecurso;
+    @jakarta.validation.constraints.NotNull
+    @jakarta.validation.constraints.Min(1)
     private Integer cantidadRequerida;
 }

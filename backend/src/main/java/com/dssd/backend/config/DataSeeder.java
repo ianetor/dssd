@@ -31,7 +31,7 @@ public class DataSeeder {
             incendio.setNivelGravedad("ALTO");
             incendio.setZonaAfectada("Bosque Norte");
             incendio.setDescripcion("Incendio forestal masivo");
-            incendio.setEstado("ACTIVA");
+            incendio.setEstado("REGISTRADA");
             incendio.setMunicipioNombre("user_rosario");
             incendio.setHectareasAfectadas(500.5); // Atributo específico de Incendio
             emergenciaRepo.save(incendio);
@@ -41,13 +41,12 @@ public class DataSeeder {
             LoteNecesidad loteParamedicos = new LoteNecesidad(null, "Paramédicos", 15, 0, incendio);
             loteRepo.saveAll(List.of(loteAgua, loteParamedicos));
 
-            // 3. Crear Oferta de Ayuda (Consorcio)
+            // 3. Crear Oferta de Ayuda de una ONG
             OfertaAyuda oferta = new OfertaAyuda();
             oferta.setEstado("BORRADOR");
             oferta.setNivelHabilitacion(5);
             oferta.setRecursosBloqueados(false);
             oferta.setOngLider("cruz_roja");
-            oferta.getOngColaboradoras().add("caritas");
             ofertaRepo.save(oferta);
 
             // 4. Crear Detalles de Oferta asociados a la Oferta y a los Lotes

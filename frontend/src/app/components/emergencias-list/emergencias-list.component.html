@@ -1,54 +1,297 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+<div [ngClass]="mostrarHeader ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6' : 'space-y-6'">
+  <!-- Header de Página (Visible si mostrarHeader es true) -->
+  <div *ngIf="mostrarHeader"
+    class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
     <div>
       <div class="flex items-center gap-2 text-xs font-mono uppercase text-slate-500 mb-1">
         <a routerLink="/" class="hover:underline">Inicio</a>
         <span>/</span>
-        <span class="text-secondary font-bold">Listado General</span>
+        <span class="text-secondary font-bold">{{ debeFiltrarSoloAbiertas ? 'Convocatorias de Ayuda Humanitaria' :
+          'Registro General' }}</span>
       </div>
-      <h1 class="text-2xl font-bold text-[#0b192c]">Registro Integral de Emergencias</h1>
+      <h1 class="text-2xl font-bold text-[#0b192c]">
+        {{ titulo || (debeFiltrarSoloAbiertas ? 'Convocatorias de Emergencia Activas' : 'Registro Integral de
+        Emergencias') }}
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-500 mt-1">
+        {{ subtitulo || (debeFiltrarSoloAbiertas ? 'Listado oficial de contingencias con convocatoria abierta para
+        recepción de ofertas de ONGs.' : 'Monitoreo de estado operativo, convocatorias y recursos demandados.') }}
+      </p>
     </div>
 
-    <a routerLink="/nueva"
-       class="px-4 py-2 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold flex items-center gap-1.5 shadow">
-      <span class="material-symbols-outlined text-[16px]">add</span>
-      <span>Nueva Emergencia</span>
-    </a>
+    <!-- Acciones Rápidas del Header según Rol -->
+    <div class="flex items-center gap-3">
+      <button type="button" (click)="cargarEmergencias()"
+        class="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all">
+        <span class="material-symbols-outlined text-[16px]" [ngClass]="{ 'animate-spin': loading }">refresh</span>
+        <span>Actualizar</span>
+      </button>
+
+      <a *ngIf="esOperadorMunicipal" routerLink="/nueva"
+        class="px-4 py-2 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold flex items-center gap-1.5 shadow">
+        <span class="material-symbols-outlined text-[16px]">add</span>
+        <span>Nueva Emergencia</span>
+      </a>
+    </div>
   </div>
 
-  <div *ngIf="loading" class="py-12 text-center text-slate-500">
+  <!-- Barra de Filtros por Estado para Coordinadores y Auditores (Ven todas) -->
+  <div *ngIf="!debeFiltrarSoloAbiertas && emergencias.length > 0"
+    class="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface-container-low rounded-xl border border-slate-200">
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-mono font-semibold text-slate-500 uppercase">Filtrar Estado:</span>
+      <div class="flex items-center gap-1.5">
+        <button type="button" (click)="cambiarFiltroTab('TODAS')"
+          [ngClass]="filtroEstadoSeleccionado === 'TODAS' ? 'bg-[#0b192c] text-white font-bold' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'"
+          class="px-3 py-1 rounded-lg text-xs transition-all">
+          Todas ({{ emergencias.length }})
+        </button>
+        <button type="button" (click)="cambiarFiltroTab('CONVOCATORIA_ABIERTA')"
+          [ngClass]="filtroEstadoSeleccionado === 'CONVOCATORIA_ABIERTA' ? 'bg-emerald-700 text-white font-bold' : 'bg-white text-emerald-800 hover:bg-emerald-50 border border-emerald-300'"
+          class="px-3 py-1 rounded-lg text-xs transition-all flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>Convocatoria Abierta</span>
+        </button>
+        <button type="button" (click)="cambiarFiltroTab('REGISTRADA')"
+          [ngClass]="filtroEstadoSeleccionado === 'REGISTRADA' ? 'bg-blue-700 text-white font-bold' : 'bg-white text-blue-800 hover:bg-blue-50 border border-blue-200'"
+          class="px-3 py-1 rounded-lg text-xs transition-all">
+          Registradas
+        </button>
+      </div>
+    </div>
+
+    <span class="text-[11px] font-mono text-slate-400">
+      Mostrando {{ emergenciasFiltradas.length }} de {{ emergencias.length }} emergencias
+    </span>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading"
+    class="py-12 text-center text-slate-500 bg-surface-container-lowest rounded-xl border border-slate-200">
     <span class="material-symbols-outlined text-[36px] animate-spin text-secondary mb-2">refresh</span>
-    <p class="text-sm">Cargando emergencias...</p>
+    <p class="text-sm font-medium">Sincronizando emergencias con el servidor...</p>
   </div>
 
-  <div *ngIf="!loading && emergencias.length === 0" class="py-12 text-center text-slate-400 border border-dashed rounded-lg">
-    No hay emergencias registradas actualmente.
+  <!-- Error State -->
+  <div *ngIf="error && !loading"
+    class="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-amber-600 text-[20px]">warning</span>
+      <span>{{ error }}</span>
+    </div>
+    <button type="button" (click)="cargarEmergencias()"
+      class="px-3 py-1 bg-amber-200 hover:bg-amber-300 rounded font-bold transition-all">
+      Reintentar
+    </button>
   </div>
 
-  <div *ngIf="!loading && emergencias.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <div *ngFor="let emg of emergencias"
-         class="bg-surface-container-lowest rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all">
+  <!-- Empty State -->
+  <div *ngIf="!loading && emergenciasFiltradas.length === 0"
+    class="py-12 px-6 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl bg-surface-container-lowest space-y-3">
+    <div class="inline-flex p-3 rounded-full bg-slate-100 text-slate-400">
+      <span class="material-symbols-outlined text-[32px]">folder_off</span>
+    </div>
+    <h3 class="text-base font-bold text-slate-700">
+      {{ debeFiltrarSoloAbiertas ? 'No hay convocatorias abiertas en este momento' : 'No se encontraron emergencias para
+      este filtro' }}
+    </h3>
+    <p class="text-xs text-slate-500 max-w-md mx-auto">
+      {{ debeFiltrarSoloAbiertas
+      ? 'Las emergencias se habilitarán automáticamente para postular cuando el Coordinador Regional publique los lotes
+      de necesidad.'
+      : 'Puede crear una nueva emergencia o ajustar el filtro seleccionado.' }}
+    </p>
+  </div>
+
+  <!-- Grid de Tarjetas de Emergencias -->
+  <div *ngIf="!loading && emergenciasFiltradas.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div *ngFor="let emg of emergenciasFiltradas" (click)="modoSeleccion ? onSeleccionar(emg) : null" [ngClass]="{
+           'ring-2 ring-blue-600 border-blue-500 bg-blue-50/30 shadow-md': modoSeleccion && emergenciaSeleccionadaId === emg.id,
+           'border-emerald-300 hover:border-emerald-500': esConvocatoriaAbierta(emg) && (!modoSeleccion || emergenciaSeleccionadaId !== emg.id),
+           'border-slate-200 hover:border-slate-300': !esConvocatoriaAbierta(emg) && (!modoSeleccion || emergenciaSeleccionadaId !== emg.id),
+           'cursor-pointer': modoSeleccion
+         }"
+      class="bg-surface-container-lowest rounded-xl p-5 border shadow-sm flex flex-col justify-between space-y-4 transition-all">
+
       <div>
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-mono font-bold text-slate-400">#EMG-{{ emg.id }}</span>
-          <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800">
-            {{ emg.estado || 'REGISTRADA' }}
+        <!-- Fila Superior: ID & Estado de Convocatoria -->
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-mono font-bold text-slate-400">#EMG-{{ emg.id }}</span>
+            <span *ngIf="modoSeleccion && emergenciaSeleccionadaId === emg.id"
+              class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-600 text-white uppercase tracking-wider">
+              Seleccionada
+            </span>
+          </div>
+
+          <!-- Estado de la Convocatoria / Protocolo -->
+          <div>
+            <div *ngIf="esConvocatoriaAbierta(emg)"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+              <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+              <span class="material-symbols-outlined text-[14px] text-emerald-700">campaign</span>
+              <span>CONVOCATORIA ABIERTA</span>
+            </div>
+
+            <div *ngIf="!esConvocatoriaAbierta(emg)"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-300">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+              <span>{{ emg.estado || 'REGISTRADA' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Encabezado de la Emergencia: Tipo, Zona y Gravedad -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary text-[22px]">
+                {{ obtenerIconoTipo(emg.tipoEmergencia) }}
+              </span>
+              <h3 class="text-base font-bold text-[#0b192c] tracking-tight">
+                {{ emg.tipoEmergencia }}
+              </h3>
+            </div>
+            <span [ngClass]="obtenerClaseGravedad(emg.nivelGravedad)"
+              class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border uppercase">
+              {{ emg.nivelGravedad }}
+            </span>
+          </div>
+
+          <!-- Zona Afectada y Municipio -->
+          <p class="text-xs text-slate-600 font-medium flex items-center gap-1">
+            <span class="material-symbols-outlined text-slate-400 text-[15px]">location_on</span>
+            <span>{{ emg.zonaAfectada }}</span>
+            <span *ngIf="emg.municipioNombre" class="text-slate-400 font-normal">({{ emg.municipioNombre }})</span>
+          </p>
+
+          <!-- Descripción -->
+          <p class="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">
+            {{ emg.descripcion }}
+          </p>
+        </div>
+
+        <!-- Métricas Específicas del Incidente -->
+        <div *ngIf="emg.milimetrosAgua || emg.hectareasAfectadas || emg.magnitudRichter"
+          class="mt-3 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-500">
+          <span *ngIf="emg.milimetrosAgua" class="px-2 py-0.5 bg-blue-50 text-blue-800 rounded border border-blue-200">
+            💧 {{ emg.milimetrosAgua }} mm agua
+          </span>
+          <span *ngIf="emg.hectareasAfectadas"
+            class="px-2 py-0.5 bg-orange-50 text-orange-800 rounded border border-orange-200">
+            🔥 {{ emg.hectareasAfectadas }} ha
+          </span>
+          <span *ngIf="emg.magnitudRichter"
+            class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded border border-amber-200">
+            ⚡ {{ emg.magnitudRichter }} Richter
           </span>
         </div>
-        <h3 class="text-base font-bold text-[#0b192c]">{{ emg.tipoEmergencia }}</h3>
-        <p class="text-xs text-slate-500 font-medium mt-0.5">{{ emg.zonaAfectada }}</p>
-        <p class="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">{{ emg.descripcion }}</p>
+
+        <!-- Resumen de Lotes de Necesidad -->
+        <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-mono font-medium flex items-center gap-1">
+              <span class="material-symbols-outlined text-[15px]">inventory_2</span>
+              <span>Lotes de Necesidad:</span>
+            </span>
+            <span class="font-bold text-[#0b192c] font-mono">
+              {{ emg.lotes && emg.lotes.length > 0 ? (emg.lotes.length + ' definidos') : 'Pendiente de desglose' }}
+            </span>
+          </div>
+
+          <!-- Chips de los primeros lotes si existen -->
+          <div *ngIf="emg.lotes && emg.lotes.length > 0" class="flex flex-wrap gap-1.5 pt-1">
+            <span *ngFor="let lote of emg.lotes.slice(0, 3)"
+              class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200 truncate max-w-[200px]"
+              [title]="lote.tipoRecurso + ': ' + lote.cantidadRequerida">
+              {{ lote.tipoRecurso }} ({{ lote.cantidadRequerida }})
+            </span>
+            <span *ngIf="emg.lotes.length > 3"
+              class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-500">
+              +{{ emg.lotes.length - 3 }} más
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-        <span class="font-mono text-slate-500">
-          Gravedad: <strong class="text-[#0b192c]">{{ emg.nivelGravedad }}</strong>
-        </span>
-        <a [routerLink]="['/emergencias', emg.id]"
-           class="px-3 py-1.5 rounded bg-secondary hover:bg-slate-800 text-white font-bold transition-all">
-          Ver / Lotes
-        </a>
+      <!-- Footer de Acciones según Rol y Modo -->
+      <div class="pt-3 border-t border-slate-100">
+        <!-- MODO SELECCIÓN (Usado típicamente en portal-ong) -->
+        <ng-container *ngIf="modoSeleccion">
+          <div *ngIf="emergenciaSeleccionadaId === emg.id" class="w-full">
+            <div
+              class="py-2 px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm">
+              <span class="material-symbols-outlined text-[16px]">check_circle</span>
+              <span>Convocatoria Seleccionada para Ofertar</span>
+            </div>
+          </div>
+
+          <button *ngIf="emergenciaSeleccionadaId !== emg.id" type="button" (click)="onSeleccionar(emg)"
+            class="w-full py-2 px-3 rounded-lg bg-secondary hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition-all">
+            <span class="material-symbols-outlined text-[16px]">volunteer_activism</span>
+            <span>Seleccionar y Cargar Oferta</span>
+          </button>
+        </ng-container>
+
+        <!-- MODO ESTÁNDAR (Página de Listado /emergencias o navegación directa) -->
+        <ng-container *ngIf="!modoSeleccion">
+          <!-- Funcionalidades para REPRESENTANTE_ONG -->
+          <div *ngIf="esRepresentanteOng" class="flex items-center justify-between gap-2">
+            <span class="text-[11px] font-mono text-emerald-700 font-bold flex items-center gap-1">
+              <span class="material-symbols-outlined text-[14px]">how_to_reg</span>
+              <span>{{ esConvocatoriaAbierta(emg) ? 'Recepción habilitada' : 'Recepción cerrada' }}</span>
+            </span>
+            <a [routerLink]="['/portal-ong']" [queryParams]="{ id: emg.id }"
+              class="px-3 py-1.5 rounded-lg bg-secondary hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
+              <span class="material-symbols-outlined text-[16px]">volunteer_activism</span>
+              <span>{{ esConvocatoriaAbierta(emg) ? 'Postular oferta' : 'Ver mis ofertas' }}</span>
+            </a>
+          </div>
+
+          <!-- Funcionalidades para COORDINADOR_REGIONAL -->
+          <div *ngIf="esCoordinadorRegional" class="flex items-center justify-between gap-2">
+            <a [routerLink]="['/emergencias', emg.id]"
+              class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1 transition-all">
+              <span class="material-symbols-outlined text-[15px]">visibility</span>
+              <span>Detalle</span>
+            </a>
+
+            <!-- Si la convocatoria ya está abierta -->
+            <a *ngIf="esConvocatoriaAbierta(emg)" [routerLink]="['/emergencias', emg.id]"
+              class="px-3 py-1.5 rounded-lg bg-[#1e3e62] hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
+              <span class="material-symbols-outlined text-[16px]">tune</span>
+              <span>Gestionar Lotes</span>
+            </a>
+
+            <!-- Si no está abierta aún -->
+            <a *ngIf="!esConvocatoriaAbierta(emg)" [routerLink]="['/emergencias', emg.id]"
+              class="px-3 py-1.5 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
+              <span class="material-symbols-outlined text-[16px]">campaign</span>
+              <span>Desglosar y publicar lotes</span>
+            </a>
+          </div>
+
+          <!-- Funcionalidades para AUDITOR_DIRECTIVO -->
+          <div *ngIf="esAuditorDirectivo" class="flex items-center justify-between gap-2">
+            <span class="text-[11px] font-mono text-slate-500">Módulo de Auditoría</span>
+            <a [routerLink]="['/emergencias', emg.id]"
+              class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
+              <span class="material-symbols-outlined text-[16px]">monitoring</span>
+              <span>Auditar Incidente</span>
+            </a>
+          </div>
+
+          <!-- Fallback para otros perfiles / sin rol -->
+          <div *ngIf="!esRepresentanteOng && !esCoordinadorRegional && !esAuditorDirectivo"
+            class="flex items-center justify-end">
+            <a [routerLink]="['/emergencias', emg.id]"
+              class="px-3 py-1.5 rounded-lg bg-secondary hover:bg-slate-800 text-white text-xs font-bold">
+              Ver Información
+            </a>
+          </div>
+        </ng-container>
       </div>
+
     </div>
   </div>
 </div>

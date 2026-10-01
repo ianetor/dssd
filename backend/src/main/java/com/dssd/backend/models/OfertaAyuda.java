@@ -23,7 +23,11 @@ public class OfertaAyuda {
     private Integer nivelHabilitacion;
     private Boolean recursosBloqueados = false;
     private String ongLider;
-    private List<String> ongColaboradoras = new ArrayList<>();
+    private String unidad;
+    private String tiempoLlegada;
+    @Column(length = 4000)
+    private String observaciones;
+    private java.time.Instant fechaHora;
 
 
     @OneToMany(mappedBy = "oferta", cascade = { CascadeType.REMOVE, CascadeType.PERSIST,

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, finalize } from 'rxjs';
 import { environment } from '../../enviroments/environment';
 import { LoginCredentials, RolUsuario, UsuarioAutenticado } from '../models/auth.model';
 
@@ -25,7 +25,7 @@ export class AuthService {
   readonly entityName = computed(() => this.currentUser()?.entidadNombre ?? '');
 
   login(credentials: LoginCredentials): Observable<UsuarioAutenticado> {
-    return this.http.post<UsuarioAutenticado>(`${this.apiUrl}/login`, credentials).pipe(
+    return this.http.post<UsuarioAutenticado>(`${this.apiUrl}/login`, credentials, { withCredentials: true }).pipe(
       tap((usuario) => {
         this.guardarUsuario(usuario);
       })
@@ -35,7 +35,9 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem(STORAGE_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/login']);
+    this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).pipe(
+      finalize(() => this.router.navigate(['/login']))
+    ).subscribe({ error: () => {} });
   }
 
   hasRole(roles: RolUsuario[]): boolean {
@@ -46,62 +48,6 @@ export class AuthService {
   guardarUsuario(usuario: UsuarioAutenticado): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(usuario));
     this.currentUser.set(usuario);
-  }
-
-  // Fallback demo local para cuando se pruebe frontend sin backend de Bonita activo
-  loginDemo(username: string): UsuarioAutenticado {
-    let mockUser: UsuarioAutenticado;
-
-    switch (username) {
-      case 'anthony.nichols':
-        mockUser = {
-          id: 1,
-          username: 'anthony.nichols',
-          nombreCompleto: 'Anthony Nichols',
-          rol: 'OPERADOR_MUNICIPAL',
-          rolDisplayName: 'Operador Municipal',
-          entidadId: 1,
-          entidadNombre: 'Municipio de San Nicolás',
-        };
-        break;
-      case 'daniela.angelo':
-        mockUser = {
-          id: 2,
-          username: 'daniela.angelo',
-          nombreCompleto: 'Daniela Angelo',
-          rol: 'COORDINADOR_REGIONAL',
-          rolDisplayName: 'Centro Coordinador Regional',
-          entidadId: 1,
-          entidadNombre: 'Nodo Regional Centro',
-        };
-        break;
-      case 'april.sanchez':
-        mockUser = {
-          id: 3,
-          username: 'april.sanchez',
-          nombreCompleto: 'April Sanchez',
-          rol: 'REPRESENTANTE_ONG',
-          rolDisplayName: 'Representante ONG',
-          entidadId: 1,
-          entidadNombre: 'Cruz Roja Argentina',
-        };
-        break;
-      case 'favio.riviera':
-      default:
-        mockUser = {
-          id: 4,
-          username: 'favio.riviera',
-          nombreCompleto: 'Favio Riviera',
-          rol: 'AUDITOR_DIRECTIVO',
-          rolDisplayName: 'Auditor / Directivo',
-          entidadId: 1,
-          entidadNombre: 'Ministerio de Seguridad y Defensa',
-        };
-        break;
-    }
-
-    this.guardarUsuario(mockUser);
-    return mockUser;
   }
 
   private obtenerUsuarioAlmacenado(): UsuarioAutenticado | null {

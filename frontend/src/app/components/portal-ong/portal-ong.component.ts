@@ -1,246 +1,258 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { forkJoin, Subscription } from 'rxjs';
 import { OfertaService } from '../../services/oferta.service';
 import { OfertaLocal } from '../../models/oferta.model';
 import { EmergenciaService } from '../../services/emergencia.service';
+import { Emergencia } from '../../models/emergencia.model';
 
-interface LoteDisponible {
+export interface LoteDisponible {
   id: string;
+  loteId?: number;
   nombre: string;
   descripcion: string;
   demanda: string;
+  cantidadRequerida: number;
+  cantidadCubierta: number;
+  cantidadFaltante: number;
+  porcentajeCubierto: number;
   unidad: string;
   icono: string;
 }
 
 @Component({
-  selector: 'app-portal-ong',
-  standalone: true,
+  selector: 'app-portal-ong', standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
-  templateUrl: './portal-ong.component.html',
-  styleUrls: ['./portal-ong.component.scss'],
+  templateUrl: './portal-ong.component.html', styleUrls: ['./portal-ong.component.scss'],
 })
-export class PortalOngComponent implements OnInit, OnDestroy {
+export class PortalOngComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly ofertaService = inject(OfertaService);
   private readonly emergenciaService = inject(EmergenciaService);
+  private readonly route = inject(ActivatedRoute);
   private readonly cd = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private carga?: Subscription;
 
+  emergenciaSeleccionada: Emergencia | null = null;
+  loadingEmergencia = false;
+  guardando = false;
+  error = '';
   ofertas: OfertaLocal[] = [];
   editandoId: string | null = null;
   feedbackMensaje = '';
   feedbackTitulo = '';
   mostrarConfirmacion = false;
   ofertaPendienteDeEliminar: string | null = null;
-
-  // Timer regresivo simulación Bonita BPM
-  segundosRestantes = 3 * 3600 + 42 * 60 + 19;
-  timerString = '03h 42m 19s';
-  private timerInterval: any;
-
-  lotesDisponibles: LoteDisponible[] = [
-    {
-      id: 'lote-1',
-      nombre: 'Lote 1: Personal Sanitario',
-      descripcion: 'Médicos y enfermeros de triaje para zonas inundadas.',
-      demanda: '8 equipos',
-      unidad: 'equipos',
-      icono: 'medical_services',
-    },
-    {
-      id: 'lote-2',
-      nombre: 'Lote 2: Raciones de Alimento',
-      descripcion: 'Alimentos no perecederos listos para consumo.',
-      demanda: '2.500 raciones',
-      unidad: 'raciones',
-      icono: 'lunch_dining',
-    },
-    {
-      id: 'lote-3',
-      nombre: 'Lote 3: Kits Sanitarios',
-      descripcion: 'Agua potable y elementos de higiene primaria.',
-      demanda: '300 kits',
-      unidad: 'kits',
-      icono: 'sanitizer',
-    },
-  ];
-
-  unidadActual = 'equipos';
+  lotesDisponibles: LoteDisponible[] = [];
+  unidadActual = 'unidades';
 
   form = this.fb.group({
-    loteNombre: ['Lote 1: Personal Sanitario', Validators.required],
-    cantidadOfrecida: [2, [Validators.required, Validators.min(1)]],
-    modalidad: ['Individual', Validators.required],
-    ongAsociada: [''],
-    tiempoLlegada: ['2 horas tras adjudicación', Validators.required],
-    observaciones: [''],
+    loteId: ['', Validators.required],
+    cantidadOfrecida: [1, [Validators.required, Validators.min(1), Validators.pattern(/^[0-9]+$/)]],
+    tiempoLlegada: ['2 horas tras adjudicación', Validators.required], observaciones: [''],
   });
 
+  get loteSeleccionado(): LoteDisponible | undefined {
+    return this.lotesDisponibles.find(l => String(l.loteId) === this.form.controls.loteId.value);
+  }
+  private loteEstaCompleto(lote: LoteDisponible): boolean {
+    return lote.porcentajeCubierto >= 100 || lote.cantidadFaltante <= 0;
+  }
+  get cantidadMaxima(): number {
+    const anterior = this.ofertas.find(o => o.id === this.editandoId);
+    return (this.loteSeleccionado?.cantidadFaltante ?? 0) + (anterior?.cantidadOfrecida ?? 0);
+  }
+  get puedeOfertar(): boolean {
+    return !this.loadingEmergencia && !this.guardando && !!this.loteSeleccionado
+      && !this.loteEstaCompleto(this.loteSeleccionado)
+      && this.emergenciaSeleccionada?.estado === 'CONVOCATORIA_ABIERTA';
+  }
+
   ngOnInit(): void {
-    this.iniciarTimer();
-    this.ofertas = this.ofertaService.obtenerTodas();
-    this.ofertaService.ofertas$.subscribe((lista) => {
-      this.ofertas = lista;
-      this.cd.detectChanges();
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      this.cancelarEdicion();
+      const id = params.get('id') || this.route.snapshot.queryParamMap.get('id');
+      if (id) this.cargarEmergencia(Number(id));
     });
-
-    // Actualizar unidad cuando cambia el lote
-    this.form.get('loteNombre')?.valueChanges.subscribe((nombre) => {
-      const encontrado = this.lotesDisponibles.find((l) => l.nombre === nombre);
-      if (encontrado) {
-        this.unidadActual = encontrado.unidad;
-      }
+    this.form.controls.loteId.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.unidadActual = this.loteSeleccionado?.unidad ?? 'unidades';
     });
   }
 
-  ngOnDestroy(): void {
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
-    }
-  }
-
-  private iniciarTimer(): void {
-    this.timerInterval = setInterval(() => {
-      if (this.segundosRestantes > 0) {
-        this.segundosRestantes--;
-        const h = Math.floor(this.segundosRestantes / 3600);
-        const m = Math.floor((this.segundosRestantes % 3600) / 60);
-        const s = this.segundosRestantes % 60;
-        this.timerString = `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  cargarEmergencia(id: number): void {
+    this.carga?.unsubscribe();
+    this.loadingEmergencia = true;
+    this.ofertas = [];
+    this.emergenciaSeleccionada = null;
+    this.lotesDisponibles = [];
+    this.carga = forkJoin({
+      emergencia: this.emergenciaService.obtenerPorId(id), ofertas: this.ofertaService.listar(id),
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: ({ emergencia, ofertas }) => {
+        this.emergenciaSeleccionada = emergencia;
+        this.ofertas = ofertas;
+        this.lotesDisponibles = (emergencia.lotes ?? []).map(lote => {
+          const requerida = Number(lote.cantidadRequerida);
+          const cubierta = Number(lote.cantidadCubierta);
+          const unidad = this.inferirUnidad(lote.tipoRecurso);
+          return {
+            id: `lote-${lote.id}`, loteId: lote.id, nombre: lote.tipoRecurso,
+            descripcion: `Lote solicitado para ${emergencia.tipoEmergencia}.`,
+            demanda: `${requerida} ${unidad}`, cantidadRequerida: requerida,
+            cantidadCubierta: cubierta, cantidadFaltante: Math.max(0, requerida - cubierta),
+            porcentajeCubierto: requerida > 0 ? Math.min(100, Math.round(cubierta / requerida * 100)) : 0,
+            unidad, icono: this.inferirIcono(lote.tipoRecurso),
+          };
+        });
+        if (!this.loteSeleccionado || this.loteEstaCompleto(this.loteSeleccionado)) {
+          const loteDisponible = this.lotesDisponibles.find(lote => !this.loteEstaCompleto(lote));
+          this.form.patchValue({ loteId: String(loteDisponible?.loteId ?? '') });
+        }
+        this.loadingEmergencia = false;
         this.cd.detectChanges();
-      }
-    }, 1000);
+      },
+      error: err => {
+        this.loadingEmergencia = false;
+        this.error = err.status === 401 ? 'La sesión venció. Vuelva a iniciar sesión.'
+          : 'No se pudieron consultar los lotes y las ofertas en la base de datos. Reintente la carga.';
+        this.cd.detectChanges();
+      },
+    });
   }
 
-  get esConsorcio(): boolean {
-    return this.form.get('modalidad')?.value === 'Consorcio';
+  private inferirUnidad(tipo: string): string {
+    const match = tipo.match(/\(([^)]+)\)/);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+    const lower = tipo.toLowerCase();
+    if (lower.includes('alimento') || lower.includes('racion')) return 'raciones';
+    if (lower.includes('medico') || lower.includes('sanitario') || lower.includes('paramedico')) return 'equipos';
+    if (lower.includes('kit') || lower.includes('higiene')) return 'kits';
+    if (lower.includes('agua') || lower.includes('litro')) return 'litros';
+    if (lower.includes('carpa') || lower.includes('refugio')) return 'unidades';
+    return 'unidades';
   }
+
+  private inferirIcono(tipo: string): string {
+    const lower = tipo.toLowerCase();
+    if (lower.includes('medico') || lower.includes('sanitario') || lower.includes('paramedico')) return 'medical_services';
+    if (lower.includes('alimento') || lower.includes('comida') || lower.includes('racion')) return 'lunch_dining';
+    if (lower.includes('kit') || lower.includes('higiene')) return 'sanitizer';
+    if (lower.includes('agua')) return 'water_drop';
+    if (lower.includes('carpa') || lower.includes('refugio')) return 'holiday_village';
+    if (lower.includes('generador') || lower.includes('energia')) return 'bolt';
+    return 'inventory_2';
+  }
+
 
   seleccionarLoteCard(lote: LoteDisponible): void {
-    this.form.patchValue({ loteNombre: lote.nombre });
+    if (this.editandoId || this.guardando || this.loteEstaCompleto(lote)) return;
+    this.form.patchValue({ loteId: String(lote.loteId) });
     this.unidadActual = lote.unidad;
+  }
 
-    // Scroll suave hacia el formulario
-    const el = document.getElementById('seccion-formulario-oferta');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  seleccionarLoteDesdeFormulario(loteId: string | null): void {
+    const lote = this.lotesDisponibles.find(item => String(item.loteId) === loteId);
+    if (lote && this.loteEstaCompleto(lote)) {
+      this.form.patchValue({ loteId: '' }, { emitEvent: false });
+      this.unidadActual = 'unidades';
     }
+  }
+  completarRestante(): void {
+    if (this.cantidadMaxima > 0) this.form.patchValue({ cantidadOfrecida: this.cantidadMaxima });
   }
 
   onSubmit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
+    if (!this.puedeOfertar || this.form.invalid) { this.form.markAllAsTouched(); return; }
     const val = this.form.getRawValue();
-    const lote = val.loteNombre ?? 'Lote 1: Personal Sanitario';
-    const cantidad = Number(val.cantidadOfrecida ?? 1);
-    const modalidad = (val.modalidad as 'Individual' | 'Consorcio') ?? 'Individual';
-    const ongAsociada = val.ongAsociada ?? '';
-    const tiempo = val.tiempoLlegada ?? 'Inmediata';
-    const obs = val.observaciones ?? '';
-
-    if (this.editandoId) {
-      // Modificar / Gestión de Versiones
-      this.ofertaService.actualizarOferta(this.editandoId, {
-        loteNombre: lote,
-        cantidadOfrecida: cantidad,
-        unidad: this.unidadActual,
-        modalidad,
-        ongAsociada: modalidad === 'Consorcio' ? ongAsociada : undefined,
-        tiempoLlegada: tiempo,
-        observaciones: obs,
-      });
-
-      this.feedbackTitulo = '¡Oferta Rectificada con Éxito (Versión 2)!';
-      this.feedbackMensaje = `Se ha actualizado la postulación para el ${lote} con ${cantidad} ${this.unidadActual}. La trazabilidad quedó registrada en la base local.`;
-      this.editandoId = null;
-    } else {
-      // Nueva oferta
-      this.ofertaService.guardarOferta({
-        loteNombre: lote,
-        cantidadOfrecida: cantidad,
-        unidad: this.unidadActual,
-        modalidad,
-        ongAsociada: modalidad === 'Consorcio' ? ongAsociada : undefined,
-        tiempoLlegada: tiempo,
-        observaciones: obs,
-      });
-
-      this.feedbackTitulo = '¡Oferta Registrada Exitosamente!';
-      this.feedbackMensaje = `La propuesta de ${cantidad} ${this.unidadActual} para el ${lote} (${modalidad}) fue registrada en la base local para la convocatoria activa.`;
+    const cantidad = Number(val.cantidadOfrecida);
+    if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > this.cantidadMaxima) {
+      this.error = `La cantidad debe ser un entero entre 1 y ${this.cantidadMaxima}.`; return;
     }
-
-    // Resetear formulario
-    this.form.reset({
-      loteNombre: lote,
-      cantidadOfrecida: 1,
-      modalidad: 'Individual',
-      ongAsociada: '',
-      tiempoLlegada: '2 horas tras adjudicación',
-      observaciones: '',
+    const emergenciaId = this.emergenciaSeleccionada!.id!;
+    const payload: Partial<OfertaLocal> = {
+      emergenciaId, loteId: this.loteSeleccionado!.loteId, cantidadOfrecida: cantidad,
+      unidad: this.unidadActual,
+      tiempoLlegada: val.tiempoLlegada ?? '',
+      observaciones: val.observaciones ?? '',
+    };
+    this.guardando = true;
+    this.error = '';
+    this.feedbackMensaje = '';
+    const operacion = this.editandoId
+      ? this.ofertaService.actualizarOferta(this.editandoId, payload)
+      : this.ofertaService.guardarOferta(payload);
+    operacion.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: oferta => {
+        this.guardando = false;
+        this.feedbackTitulo = 'Oferta guardada';
+        this.feedbackMensaje = `Oferta #${oferta.id} registrada en la base de datos.`;
+        this.cancelarEdicion();
+        this.cargarEmergencia(emergenciaId);
+      },
+      error: err => {
+        this.guardando = false;
+        this.error = err.error?.message ?? 'No se pudo guardar la oferta. No se confirmó ningún cambio.';
+        if (err.status === 409) {
+          this.cancelarEdicion();
+          this.cargarEmergencia(emergenciaId);
+        }
+        this.cd.detectChanges();
+      },
     });
-
-    this.cd.detectChanges();
   }
 
   iniciarEdicion(oferta: OfertaLocal): void {
+    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA' || this.guardando || oferta.estado === 'Retirada') return;
     this.editandoId = oferta.id;
-    this.form.patchValue({
-      loteNombre: oferta.loteNombre,
-      cantidadOfrecida: oferta.cantidadOfrecida,
-      modalidad: oferta.modalidad,
-      ongAsociada: oferta.ongAsociada || '',
-      tiempoLlegada: oferta.tiempoLlegada,
-      observaciones: oferta.observaciones || '',
-    });
+    this.form.patchValue({ loteId: String(oferta.loteId), cantidadOfrecida: oferta.cantidadOfrecida,
+      tiempoLlegada: oferta.tiempoLlegada, observaciones: oferta.observaciones || '' });
+    this.form.controls.loteId.disable();
     this.unidadActual = oferta.unidad;
-
-    // Scroll suave hacia el formulario
-    const el = document.getElementById('seccion-formulario-oferta');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    this.cd.detectChanges();
   }
-
   cancelarEdicion(): void {
     this.editandoId = null;
-    this.form.reset({
-      loteNombre: 'Lote 1: Personal Sanitario',
-      cantidadOfrecida: 1,
-      modalidad: 'Individual',
-      ongAsociada: '',
-      tiempoLlegada: '2 horas tras adjudicación',
-      observaciones: '',
-    });
-    this.cd.detectChanges();
+    this.form.controls.loteId.enable();
+    const loteDisponible = this.lotesDisponibles.find(lote => !this.loteEstaCompleto(lote));
+    this.form.reset({ loteId: String(loteDisponible?.loteId ?? ''), cantidadOfrecida: 1,
+      tiempoLlegada: '2 horas tras adjudicación', observaciones: '' });
   }
-
   eliminarOferta(id: string): void {
+    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA' || this.guardando) return;
     this.ofertaPendienteDeEliminar = id;
     this.mostrarConfirmacion = true;
   }
-
   cerrarConfirmacion(): void {
     this.mostrarConfirmacion = false;
     this.ofertaPendienteDeEliminar = null;
   }
-
   confirmarEliminacion(): void {
     const id = this.ofertaPendienteDeEliminar;
-    if (!id) {
-      return;
-    }
-
-    this.ofertaService.eliminarOferta(id);
-    if (this.editandoId === id) {
-      this.cancelarEdicion();
-    }
-    this.cerrarConfirmacion();
-    this.cd.detectChanges();
+    const emergenciaId = this.emergenciaSeleccionada?.id;
+    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA' || !id || !emergenciaId || this.guardando) return;
+    this.guardando = true;
+    this.error = '';
+    this.feedbackMensaje = '';
+    this.ofertaService.eliminarOferta(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.guardando = false;
+        this.cerrarConfirmacion();
+        this.cancelarEdicion();
+        this.feedbackTitulo = 'Oferta retirada';
+        this.feedbackMensaje = 'El retiro quedó registrado en la base de datos y se liberó su aporte al lote.';
+        this.cargarEmergencia(emergenciaId);
+      },
+      error: err => {
+        this.guardando = false;
+        this.cerrarConfirmacion();
+        this.error = err.error?.message ?? 'No se pudo retirar la oferta.';
+        this.cd.detectChanges();
+      },
+    });
   }
 }

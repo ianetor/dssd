@@ -202,6 +202,9 @@ public class AuthService {
         // 5. Vincular entidad local (Municipio u ONG) según el rol determinado por Bonita
         Long entidadId = null;
         String entidadNombre = null;
+        if ("REPRESENTANTE_ONG".equals(rolIdentificado)) {
+            entidadNombre = username;
+        }
 
         return UsuarioResponseDTO.builder()
                 .id(userId != null ? userId : 1L)

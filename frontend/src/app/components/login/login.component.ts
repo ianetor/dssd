@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { RolUsuario } from '../../models/auth.model';
+import { getRutaPorRol } from '../../guards/auth.guard';
 
 @Component({
   selector: 'app-login',
@@ -44,9 +45,9 @@ export class LoginComponent {
           this.errorMessage = 'Credenciales inválidas en Bonita BPM. Verifica usuario y contraseña.';
         } else if (err.status === 502 || err.status === 504 || err.status === 0) {
           this.errorMessage =
-            'No se pudo conectar con el motor Bonita BPM / Backend local (puerto 8080). Puedes ingresar en Modo Demo para evaluar el frontend.';
+            'No se pudo conectar con el motor Bonita BPM / Backend local (puerto 8080). Reintente cuando el servidor esté disponible.';
         } else {
-          this.errorMessage = err.error?.message || 'Error al autenticar contra Bonita. Puedes ingresar en Modo Demo.';
+          this.errorMessage = err.error?.message || 'Error al autenticar contra Bonita.';
         }
       },
     });
@@ -60,21 +61,7 @@ export class LoginComponent {
     this.serverUnavailable = false;
   }
 
-  // Ingreso directo en modo demo cuando el backend de Bonita esté apagado
-  loginModoDemo(): void {
-    const usuario = this.authService.loginDemo(this.username);
-    this.redirigirSegunRol(usuario.rol);
-  }
-
   private redirigirSegunRol(rol: RolUsuario): void {
-    if (rol === 'OPERADOR_MUNICIPAL') {
-      this.router.navigate(['/operador']);
-    } else if (rol === 'COORDINADOR_REGIONAL') {
-      this.router.navigate(['/coordinador']);
-    } else if (rol === 'REPRESENTANTE_ONG') {
-      this.router.navigate(['/portal-ong']);
-    } else {
-      this.router.navigate(['/']);
-    }
+    this.router.navigate([getRutaPorRol(rol)]);
   }
 }

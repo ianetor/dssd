@@ -8,5 +8,8 @@ import java.util.List;
 
 @Repository
 public interface LoteNecesidadRepository extends JpaRepository<LoteNecesidad, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select l from LoteNecesidad l where l.id = :id")
+    java.util.Optional<LoteNecesidad> bloquearPorId(@org.springframework.data.repository.query.Param("id") Long id);
     List<LoteNecesidad> findByEmergenciaId(Long emergenciaId);
 }

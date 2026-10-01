@@ -8,9 +8,9 @@ export function getRutaPorRol(rol: RolUsuario | null): string {
     case 'OPERADOR_MUNICIPAL':
       return '/operador';
     case 'COORDINADOR_REGIONAL':
-      return '/coordinador';
+      return '/emergencias';
     case 'REPRESENTANTE_ONG':
-      return '/portal-ong';
+      return '/emergencias';
     case 'AUDITOR_DIRECTIVO':
       return '/emergencias';
     default:
