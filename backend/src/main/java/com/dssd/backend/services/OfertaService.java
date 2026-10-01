@@ -96,6 +96,13 @@ public class OfertaService {
     private LoteNecesidad lote(OfertaAyuda oferta) { return oferta.getDetalles().get(0).getLote(); }
 
     private void abierta(LoteNecesidad lote) {
+        Emergencia emergencia = lote.getEmergencia();
+        if (!"CONVOCATORIA_ABIERTA".equals(emergencia.getEstado())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La convocatoria ya no está abierta");
+        }
+        if (emergencia.getFechaVencimiento() == null || !emergencia.getFechaVencimiento().isAfter(Instant.now())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El plazo de recepción de ofertas ya venció");
+        }
     }
 
     private void validar(LoteNecesidad lote, OfertaRequestDTO dto, int cantidadAnterior) {

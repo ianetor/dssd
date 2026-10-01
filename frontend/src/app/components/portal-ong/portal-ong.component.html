@@ -84,12 +84,17 @@
           Plazo de recepción de ofertas
         </span>
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
-          <span class="text-2xl font-mono font-extrabold text-red-600">
-            {{ emergenciaSeleccionada.estado === 'CONVOCATORIA_ABIERTA' ? 'Abierta' : 'Cerrada' }}
+          <span class="w-2.5 h-2.5 rounded-full animate-pulse"
+            [ngClass]="tiempoRestante === 'Cerrada' ? 'bg-slate-500' : 'bg-red-600'"></span>
+          <span class="text-2xl font-mono font-extrabold"
+            [ngClass]="tiempoRestante === 'Cerrada' ? 'text-slate-600' : 'text-red-600'">
+            {{ tiempoRestante }}
           </span>
         </div>
-        <span class="text-[11px] text-slate-500">Estado de convocatoria registrado en el sistema</span>
+        <span class="text-[11px] text-slate-500">
+          {{ timerBonita?.plazoRecepcionHoras ? ('Plazo Bonita: ' + timerBonita?.plazoRecepcionHoras + ' horas') :
+          (timerBonitaError || 'Estado de convocatoria registrado en el sistema') }}
+        </span>
       </div>
     </div>
 

@@ -5,6 +5,11 @@ import { retry, timeout } from 'rxjs/operators';
 import { environment } from '../../enviroments/environment';
 import { Emergencia, EmergenciaPayload, LotePayload } from '../models/emergencia.model';
 
+export interface TimerBonita {
+  plazoRecepcionHoras?: string;
+  fechaVencimiento?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -28,7 +33,13 @@ export class EmergenciaService {
     return this.http.post<Emergencia>(this.apiUrl, payload);
   }
 
-  publicarLotes(id: number, lotes: LotePayload[]): Observable<Emergencia> {
-    return this.http.post<Emergencia>(`${this.apiUrl}/${id}/lotes`, lotes);
+  publicarLotes(id: number, lotes: LotePayload[], plazoRecepcionHoras: number): Observable<Emergencia> {
+    return this.http.post<Emergencia>(`${this.apiUrl}/${id}/lotes`, lotes, {
+      params: { plazoRecepcionHoras },
+    });
+  }
+
+  obtenerTimer(id: number): Observable<TimerBonita> {
+    return this.http.get<TimerBonita>(`${this.apiUrl}/${id}/timer`);
   }
 }

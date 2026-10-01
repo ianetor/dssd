@@ -3,11 +3,12 @@ import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angul
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { forkJoin, Subscription } from 'rxjs';
+import { forkJoin, Subscription, timer } from 'rxjs';
+import { EmergenciaService } from '../../services/emergencia.service';
 import { OfertaService } from '../../services/oferta.service';
 import { OfertaLocal } from '../../models/oferta.model';
-import { EmergenciaService } from '../../services/emergencia.service';
 import { Emergencia } from '../../models/emergencia.model';
+import { TimerBonita } from '../../services/emergencia.service';
 
 export interface LoteDisponible {
   id: string;
@@ -36,6 +37,7 @@ export class PortalOngComponent implements OnInit {
   private readonly cd = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private carga?: Subscription;
+  private timerSubscription?: Subscription;
 
   emergenciaSeleccionada: Emergencia | null = null;
   loadingEmergencia = false;
@@ -49,6 +51,9 @@ export class PortalOngComponent implements OnInit {
   ofertaPendienteDeEliminar: string | null = null;
   lotesDisponibles: LoteDisponible[] = [];
   unidadActual = 'unidades';
+  timerBonita: TimerBonita | null = null;
+  timerBonitaError = '';
+  tiempoRestante = 'Consultando Bonita...';
 
   form = this.fb.group({
     loteId: ['', Validators.required],
@@ -95,6 +100,7 @@ export class PortalOngComponent implements OnInit {
       next: ({ emergencia, ofertas }) => {
         this.emergenciaSeleccionada = emergencia;
         this.ofertas = ofertas;
+        this.cargarTimerBonita(emergencia.id);
         this.lotesDisponibles = (emergencia.lotes ?? []).map(lote => {
           const requerida = Number(lote.cantidadRequerida);
           const cubierta = Number(lote.cantidadCubierta);
@@ -122,6 +128,43 @@ export class PortalOngComponent implements OnInit {
         this.cd.detectChanges();
       },
     });
+  }
+
+  private cargarTimerBonita(emergenciaId?: number): void {
+    this.timerSubscription?.unsubscribe();
+    this.timerBonita = null;
+    this.timerBonitaError = '';
+    this.tiempoRestante = 'Consultando Bonita...';
+    if (!emergenciaId) return;
+
+    this.emergenciaService.obtenerTimer(emergenciaId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: timerBonita => {
+        this.timerBonita = timerBonita;
+        if (!timerBonita.fechaVencimiento) {
+          this.timerBonitaError = 'Bonita no devolvió la fecha de vencimiento del caso.';
+          this.tiempoRestante = 'Sin fecha en Bonita';
+          return;
+        }
+        this.timerSubscription = timer(0, 1000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+          const restante = new Date(timerBonita.fechaVencimiento!).getTime() - Date.now();
+          this.tiempoRestante = restante > 0 ? this.formatearRestante(restante) : 'Cerrada';
+          this.cd.detectChanges();
+        });
+      },
+      error: () => {
+        this.timerBonitaError = 'No se pudo consultar el timer del caso en Bonita.';
+        this.tiempoRestante = 'Timer no disponible';
+        this.cd.detectChanges();
+      },
+    });
+  }
+
+  private formatearRestante(milisegundos: number): string {
+    const totalSegundos = Math.floor(milisegundos / 1000);
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = totalSegundos % 60;
+    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
   }
 
   private inferirUnidad(tipo: string): string {

@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -178,6 +180,31 @@ public class BonitaService {
         return get("/API/identity/user", params);
     }
 
+    public Map<String, Object> obtenerTimerCaso(Long caseId) {
+        try {
+            HttpHeaders headers = login();
+            String url = bonitaUrl + "/API/bpm/caseVariable?p=0&c=100&f=case_id=" + caseId;
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class);
+            JsonNode variables = objectMapper.readTree(response.getBody());
+            Map<String, Object> timer = new LinkedHashMap<>();
+            if (variables.isArray()) {
+                variables.forEach(variable -> {
+                    String name = variable.path("name").asText();
+                    if ("plazoRecepcionHoras".equals(name) || "fechaVencimiento".equals(name)) {
+                        timer.put(name, variable.path("value").asText());
+                    }
+                });
+            }
+            return timer;
+        } catch (RestClientResponseException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "No se pudo consultar el timer del caso " + caseId + " en Bonita: " + e.getMessage(), e);
+        }
+    }
+
     public Map<String, Object> healthStatus() {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("bonitaUrl", this.bonitaUrl);
@@ -240,7 +267,8 @@ public class BonitaService {
         }
     }
 
-    public void avanzarPublicacionConvocatoria(Long caseId) {
+    public void avanzarPublicacionConvocatoria(Long caseId, Integer plazoRecepcionHoras,
+                                               java.time.Instant fechaVencimiento) {
         if (caseId == null) return;
 
         HttpHeaders headers = login();
@@ -280,7 +308,9 @@ public class BonitaService {
                 if (userId != null) {
                     execUrl += "&user=" + userId;
                 }
-                HttpEntity<String> execEntity = new HttpEntity<>("{}", headers);
+                String executionBody = objectMapper.writeValueAsString(Map.of(
+                    "plazoRecepcionHoras", plazoRecepcionHoras));
+                HttpEntity<String> execEntity = new HttpEntity<>(executionBody, headers);
                 ResponseEntity<String> execResp = restTemplate.postForEntity(execUrl, execEntity, String.class);
                 System.out.println("Tarea " + taskId + " ejecutada con status=" + execResp.getStatusCode());
             } else {

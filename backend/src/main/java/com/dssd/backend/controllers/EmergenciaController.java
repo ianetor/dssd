@@ -38,8 +38,9 @@ public class EmergenciaController {
     @PostMapping("/{id}/lotes")
     public ResponseEntity<EmergenciaResponseDTO> publicarLotes(
             @PathVariable Long id,
-            @RequestBody List<LoteRequestDTO> lotesDTO) {
-        EmergenciaResponseDTO actualizada = emergenciaService.publicarLotes(id, lotesDTO);
+            @RequestBody List<LoteRequestDTO> lotesDTO,
+            @RequestParam Integer plazoRecepcionHoras) {
+        EmergenciaResponseDTO actualizada = emergenciaService.publicarLotes(id, lotesDTO, plazoRecepcionHoras);
         return ResponseEntity.ok(actualizada);
     }
 
@@ -57,5 +58,10 @@ public class EmergenciaController {
     @GetMapping("/{id}/lotes")
     public ResponseEntity<List<LoteResponseDTO>> obtenerLotesDeEmergencia(@PathVariable Long id) {
         return ResponseEntity.ok(emergenciaService.obtenerLotesDeEmergencia(id));
+    }
+
+    @GetMapping("/{id}/timer")
+    public ResponseEntity<java.util.Map<String, Object>> obtenerTimer(@PathVariable Long id) {
+        return ResponseEntity.ok(emergenciaService.obtenerTimer(id));
     }
 }

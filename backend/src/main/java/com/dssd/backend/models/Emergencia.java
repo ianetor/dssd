@@ -8,6 +8,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 
 import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaResponseDTO;
@@ -51,6 +52,10 @@ public abstract class Emergencia {
     private String municipioNombre;
 
     private Long caseId;
+
+    private Integer plazoRecepcionHoras;
+
+    private Instant fechaVencimiento;
 
     @OneToMany(mappedBy = "emergencia", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
     private List<LoteNecesidad> lotes = new ArrayList<>();

@@ -12,6 +12,9 @@ export interface Emergencia {
   zonaAfectada: string;
   descripcion: string;
   estado: string;
+  caseId?: number;
+  plazoRecepcionHoras?: number | null;
+  fechaVencimiento?: string | null;
   municipioId?: number | null;
   municipioNombre?: string;
   hectareasAfectadas?: number | null;

@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
@@ -53,11 +55,18 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
         return toResponseDTO(guardada);
     }
 
-    public EmergenciaResponseDTO publicarLotes(Long emergenciaId, List<LoteRequestDTO> lotesDto) {
+    public EmergenciaResponseDTO publicarLotes(Long emergenciaId, List<LoteRequestDTO> lotesDto,
+                                               Integer plazoRecepcionHoras) {
         Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
                 .orElseThrow(() -> new NoSuchElementException("Emergencia no encontrada con ID: " + emergenciaId));
 
+        if (plazoRecepcionHoras == null || !List.of(4, 8, 12, 24).contains(plazoRecepcionHoras)) {
+            throw new IllegalArgumentException("El plazo de recepción debe ser 4, 8, 12 o 24 horas");
+        }
+
         emergencia.setEstado("CONVOCATORIA_ABIERTA");
+        emergencia.setPlazoRecepcionHoras(plazoRecepcionHoras);
+        emergencia.setFechaVencimiento(Instant.now().plusSeconds(plazoRecepcionHoras * 3600L));
 
         if (lotesDto != null && !lotesDto.isEmpty()) {
             List<LoteNecesidad> nuevosLotes = lotesDto.stream().map(loteDto -> {
@@ -78,7 +87,8 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
         // AVANZAR TAREA EN BONITA
         try {
             if (actualizada.getCaseId() != null) {
-                bonitaService.avanzarPublicacionConvocatoria(actualizada.getCaseId());
+                bonitaService.avanzarPublicacionConvocatoria(actualizada.getCaseId(),
+                        actualizada.getPlazoRecepcionHoras(), actualizada.getFechaVencimiento());
             }
         } catch (Exception e) {
             System.err.println("Error al avanzar tarea en Bonita: " + e.getMessage());
@@ -115,12 +125,28 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> obtenerTimer(Long emergenciaId) {
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
+                .orElseThrow(() -> new NoSuchElementException("Emergencia no encontrada con ID: " + emergenciaId));
+        if (emergencia.getCaseId() == null) {
+            throw new IllegalStateException("La emergencia todavía no tiene un caso de Bonita");
+        }
+        Map<String, Object> timer = bonitaService.obtenerTimerCaso(emergencia.getCaseId());
+        if (timer.containsKey("plazoRecepcionHoras") && emergencia.getFechaVencimiento() != null) {
+            timer.putIfAbsent("fechaVencimiento", emergencia.getFechaVencimiento().toString());
+        }
+        return timer;
+    }
+
 
 
     public EmergenciaResponseDTO toResponseDTO(Emergencia emergencia) {
         EmergenciaResponseDTO.EmergenciaResponseDTOBuilder builder = EmergenciaResponseDTO.builder()
                 .id(emergencia.getId())
                 .caseId(emergencia.getCaseId())
+                .plazoRecepcionHoras(emergencia.getPlazoRecepcionHoras())
+                .fechaVencimiento(emergencia.getFechaVencimiento())
                 .nivelGravedad(emergencia.getNivelGravedad())
                 .zonaAfectada(emergencia.getZonaAfectada())
                 .descripcion(emergencia.getDescripcion())

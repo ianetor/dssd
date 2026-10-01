@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 
 import com.dssd.backend.dtos.LoteResponseDTO;
@@ -18,6 +19,8 @@ import com.dssd.backend.dtos.LoteResponseDTO;
 @Builder
 public class EmergenciaResponseDTO {
     private Long caseId;
+    private Integer plazoRecepcionHoras;
+    private Instant fechaVencimiento;
     private Long id;
     private String tipoEmergencia;
     private String nivelGravedad;

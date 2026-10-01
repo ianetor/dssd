@@ -215,7 +215,7 @@ export class EmergenciaDetailComponent implements OnInit {
       cantidadRequerida: l.cantidad,
     }));
 
-    this.emergenciaService.publicarLotes(this.emergencia.id, payload).subscribe({
+    this.emergenciaService.publicarLotes(this.emergencia.id, payload, Number(this.timerSeleccionado)).subscribe({
       next: (actualizada) => {
         this.emergencia = actualizada;
         this.isSubmitting = false;
