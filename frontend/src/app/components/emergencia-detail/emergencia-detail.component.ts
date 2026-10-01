@@ -42,11 +42,15 @@ export class EmergenciaDetailComponent implements OnInit {
   timerSeleccionado = '4'; // 4 horas por defecto
 
   loteForm = this.fb.group({
-    nombre: ['', Validators.required],
+    nombre: ['', [
+      Validators.required,
+      Validators.maxLength(255),
+      Validators.pattern(/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s\/\-,\.()]+$/)
+    ]],
     cantidad: [1, [Validators.required, Validators.min(1)]],
-    unidad: ['unidades', Validators.required],
+    unidad: ['unidades', [Validators.required, Validators.maxLength(50)]],
     prioridad: ['Alta', Validators.required],
-    descripcion: [''],
+    descripcion: ['', [Validators.maxLength(500)]],
   });
 
   ngOnInit(): void {
@@ -151,8 +155,20 @@ export class EmergenciaDetailComponent implements OnInit {
     }
 
     const val = this.loteForm.value;
+    const nombreNuevo = (val.nombre ?? '').trim();
+
+    // Validar que no exista ya un lote con el mismo nombre (case-insensitive)
+    const yaExiste = this.lotesDesglosados.some(
+      (l) => l.nombre.trim().toLowerCase() === nombreNuevo.toLowerCase()
+    );
+    if (yaExiste) {
+      this.loteForm.get('nombre')?.setErrors({ duplicado: true });
+      this.loteForm.markAllAsTouched();
+      return;
+    }
+
     const nuevo: LoteItem = {
-      nombre: val.nombre ?? '',
+      nombre: nombreNuevo,
       cantidad: Number(val.cantidad ?? 1),
       unidad: val.unidad ?? 'unidades',
       prioridad: (val.prioridad as 'Urgente' | 'Alta' | 'Media') ?? 'Alta',

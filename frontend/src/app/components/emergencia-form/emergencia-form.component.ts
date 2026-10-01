@@ -35,13 +35,23 @@ export class EmergenciaFormComponent {
   form = this.fb.group({
     tipoEmergencia: ['INUNDACION', Validators.required],
     nivelGravedad: ['ALTA', Validators.required],
-    zonaAfectada: ['', Validators.required],
-    descripcion: ['', Validators.required],
-    hectareasAfectadas: [null as number | null],
-    milimetrosAgua: [null as number | null],
-    magnitudRichter: [null as number | null],
-    responsableNombre: ['Comandante Roberto Varela'],
-    responsableTelefono: ['+54 336 442-9901'],
+    zonaAfectada: ['', [
+      Validators.required,
+      Validators.maxLength(255),
+      Validators.pattern(/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s\/\-,\.]+$/)
+    ]],
+    descripcion: ['', [
+      Validators.required,
+      Validators.maxLength(1000)
+    ]],
+    hectareasAfectadas: [null as number | null, [Validators.min(0)]],
+    milimetrosAgua: [null as number | null, [Validators.min(0)]],
+    magnitudRichter: [null as number | null, [Validators.min(0)]],
+    responsableNombre: ['Comandante Roberto Varela', [
+      Validators.maxLength(255),
+      Validators.pattern(/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s\.]+$/)
+    ]],
+    responsableTelefono: ['+54 336 442-9901', [Validators.maxLength(30)]],
   });
 
   ngOnInit(): void {

@@ -98,8 +98,16 @@
               </label>
               <input formControlName="nombre"
                      type="text"
+                     maxlength="255"
                      placeholder="Ej: Paramédicos y Rescate Acuático"
-                     class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium" />
+                     class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium"
+                     [class.border-red-400]="loteForm.get('nombre')?.invalid && loteForm.get('nombre')?.touched" />
+              <div *ngIf="loteForm.get('nombre')?.invalid && loteForm.get('nombre')?.touched" class="text-xs text-red-600">
+                <span *ngIf="loteForm.get('nombre')?.errors?.['required']">El nombre es obligatorio.</span>
+                <span *ngIf="loteForm.get('nombre')?.errors?.['maxlength']">Máximo 255 caracteres.</span>
+                <span *ngIf="loteForm.get('nombre')?.errors?.['pattern']">Solo se permiten letras, espacios y los caracteres / - , . ( )</span>
+                <span *ngIf="loteForm.get('nombre')?.errors?.['duplicado']">Ya existe un lote con ese nombre.</span>
+              </div>
             </div>
 
             <!-- Cantidad y Unidad -->
@@ -115,6 +123,7 @@
                        class="w-24 h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-bold" />
                 <input formControlName="unidad"
                        type="text"
+                       maxlength="50"
                        placeholder="equipos / raciones"
                        class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium" />
               </div>
@@ -140,6 +149,7 @@
               </label>
               <input formControlName="descripcion"
                      type="text"
+                     maxlength="500"
                      placeholder="Ej: Certificación en rescate fluvial, alimentos no perecederos con estándar ONU..."
                      class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-normal" />
             </div>

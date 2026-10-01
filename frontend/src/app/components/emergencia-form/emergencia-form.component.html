@@ -95,8 +95,15 @@
         </label>
         <input formControlName="zonaAfectada"
                type="text"
+               maxlength="255"
                placeholder="Ej: Cuenca Río Salado / Costanera Norte y Barrios Aledaños"
-               class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent font-medium" />
+               class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent font-medium"
+               [class.border-red-400]="form.get('zonaAfectada')?.invalid && form.get('zonaAfectada')?.touched" />
+        <div *ngIf="form.get('zonaAfectada')?.invalid && form.get('zonaAfectada')?.touched" class="mt-1 text-xs text-red-600">
+          <span *ngIf="form.get('zonaAfectada')?.errors?.['required']">Este campo es obligatorio.</span>
+          <span *ngIf="form.get('zonaAfectada')?.errors?.['maxlength']">Máximo 255 caracteres permitidos.</span>
+          <span *ngIf="form.get('zonaAfectada')?.errors?.['pattern']">Solo se permiten letras, espacios y los caracteres / - , .</span>
+        </div>
       </div>
 
       <!-- Descripción del Daño -->
@@ -106,8 +113,14 @@
         </label>
         <textarea formControlName="descripcion"
                   rows="3"
+                  maxlength="1000"
                   placeholder="Describa el alcance de la emergencia, cantidad de damnificados preliminares y necesidades inmediatas..."
-                  class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent resize-y font-normal"></textarea>
+                  class="w-full bg-surface-container-low border border-slate-300 text-[#0b192c] text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent resize-y font-normal"
+                  [class.border-red-400]="form.get('descripcion')?.invalid && form.get('descripcion')?.touched"></textarea>
+        <div *ngIf="form.get('descripcion')?.invalid && form.get('descripcion')?.touched" class="mt-1 text-xs text-red-600">
+          <span *ngIf="form.get('descripcion')?.errors?.['required']">Este campo es obligatorio.</span>
+          <span *ngIf="form.get('descripcion')?.errors?.['maxlength']">Máximo 1000 caracteres permitidos.</span>
+        </div>
       </div>
 
       <!-- Métricas Especializadas según el tipo de Desastre -->
@@ -167,13 +180,24 @@
             <label class="block text-[11px] font-mono uppercase text-slate-500 mb-1">Nombre y Apellido</label>
             <input formControlName="responsableNombre"
                    type="text"
-                   class="w-full bg-white border border-slate-300 text-sm rounded-lg p-2 text-slate-800 focus:ring-2 focus:ring-secondary outline-none" />
+                   maxlength="254"
+                   class="w-full bg-white border border-slate-300 text-sm rounded-lg p-2 text-slate-800 focus:ring-2 focus:ring-secondary outline-none"
+                   [class.border-red-400]="form.get('responsableNombre')?.invalid && form.get('responsableNombre')?.touched" />
+            <div *ngIf="form.get('responsableNombre')?.invalid && form.get('responsableNombre')?.touched" class="mt-1 text-xs text-red-600">
+              <span *ngIf="form.get('responsableNombre')?.errors?.['maxlength']">Máximo 254 caracteres.</span>
+              <span *ngIf="form.get('responsableNombre')?.errors?.['pattern']">Solo se permiten letras y espacios.</span>
+            </div>
           </div>
           <div>
             <label class="block text-[11px] font-mono uppercase text-slate-500 mb-1">Teléfono Directo</label>
             <input formControlName="responsableTelefono"
                    type="tel"
-                   class="w-full bg-white border border-slate-300 text-sm rounded-lg p-2 text-slate-800 focus:ring-2 focus:ring-secondary outline-none" />
+                   maxlength="30"
+                   class="w-full bg-white border border-slate-300 text-sm rounded-lg p-2 text-slate-800 focus:ring-2 focus:ring-secondary outline-none"
+                   [class.border-red-400]="form.get('responsableTelefono')?.invalid && form.get('responsableTelefono')?.touched" />
+            <div *ngIf="form.get('responsableTelefono')?.invalid && form.get('responsableTelefono')?.touched" class="mt-1 text-xs text-red-600">
+              <span *ngIf="form.get('responsableTelefono')?.errors?.['maxlength']">Máximo 30 caracteres.</span>
+            </div>
           </div>
         </div>
       </div>
