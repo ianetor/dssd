@@ -120,31 +120,6 @@ export class EmergenciaDetailComponent implements OnInit {
           descripcion: `Lote asignado a ${emg.tipoEmergencia}`,
         });
       });
-    } else {
-      // Datos representativos iniciales acordes a la consigna
-      this.lotesDesglosados = [
-        {
-          nombre: 'Paramédicos y Personal de Rescate Ribereño',
-          cantidad: 8,
-          unidad: 'equipos',
-          prioridad: 'Urgente',
-          descripcion: 'Triaje en zona anegada, botes semirrígidos y soporte vital avanzado.',
-        },
-        {
-          nombre: 'Raciones de Alimento No Perecedero y Agua',
-          cantidad: 2500,
-          unidad: 'raciones',
-          prioridad: 'Alta',
-          descripcion: 'Estándar ONU/Cruz Roja: 2.200 kcal/día en envase impermeable.',
-        },
-        {
-          nombre: 'Kits Sanitarios de Emergencia y Medicamentos',
-          cantidad: 300,
-          unidad: 'kits',
-          prioridad: 'Media',
-          descripcion: 'Antibióticos, pastillas potabilizadoras, sueros y gasas estériles.',
-        },
-      ];
     }
   }
 
