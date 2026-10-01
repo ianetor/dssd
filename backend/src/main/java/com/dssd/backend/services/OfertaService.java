@@ -96,6 +96,9 @@ public class OfertaService {
     private LoteNecesidad lote(OfertaAyuda oferta) { return oferta.getDetalles().get(0).getLote(); }
 
     private void abierta(LoteNecesidad lote) {
+        if ("PUBLICACION_PENDIENTE".equals(lote.getEmergencia().getEstado())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La convocatoria está pendiente de publicación");
+        }
     }
 
     private void validar(LoteNecesidad lote, OfertaRequestDTO dto, int cantidadAnterior) {

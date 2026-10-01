@@ -52,6 +52,18 @@ public abstract class Emergencia {
 
     private Long caseId;
 
+    private Long duracionConvocatoriaMinutos;
+    private java.time.Instant fechaAperturaConvocatoria;
+    private java.time.Instant fechaVencimientoConvocatoria;
+    private java.time.Instant fechaCierreConvocatoria;
+    private String motivoCierre;
+
+    // Operación de publicación durable: una por emergencia, recuperable tras reinicios.
+    private Long publicacionTaskId;
+    private Integer publicacionIntentos;
+    private java.time.Instant publicacionProximoIntento;
+    private String publicacionError;
+
     @OneToMany(mappedBy = "emergencia", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
     private List<LoteNecesidad> lotes = new ArrayList<>();
 

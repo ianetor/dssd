@@ -53,16 +53,40 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
         return toResponseDTO(guardada);
     }
 
-    public EmergenciaResponseDTO publicarLotes(Long emergenciaId, List<LoteRequestDTO> lotesDto) {
-        Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
+    public EmergenciaResponseDTO publicarLotes(Long emergenciaId, com.dssd.backend.dtos.PublicacionConvocatoriaRequestDTO solicitud) {
+        Emergencia emergencia = emergenciaRepository.bloquearPorId(emergenciaId)
                 .orElseThrow(() -> new NoSuchElementException("Emergencia no encontrada con ID: " + emergenciaId));
-
-        emergencia.setEstado("CONVOCATORIA_ABIERTA");
-
-        if (lotesDto != null && !lotesDto.isEmpty()) {
+        if (emergencia.getDuracionConvocatoriaMinutos() != null) {
+            var existentes = emergencia.getLotes().stream()
+                    .map(l -> new LoteComparable(l.getTipoRecurso(), l.getCantidadRequerida()))
+                    .collect(Collectors.groupingBy(l -> l, Collectors.counting()));
+            var solicitados = solicitud.lotes().stream()
+                    .map(l -> new LoteComparable(l.getTipoRecurso().trim(), l.getCantidadRequerida()))
+                    .collect(Collectors.groupingBy(l -> l, Collectors.counting()));
+            if (!emergencia.getDuracionConvocatoriaMinutos().equals(solicitud.duracionMinutos())
+                    || !existentes.equals(solicitados)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.CONFLICT, "La convocatoria ya tiene otra publicación registrada");
+            }
+            return toResponseDTO(emergencia);
+        }
+        if (!"REGISTRADA".equals(emergencia.getEstado()) || !emergencia.getLotes().isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "La emergencia no admite una nueva publicación");
+        }
+        if (emergencia.getCaseId() == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "La emergencia no tiene un caso de Bonita asociado");
+        }
+        emergencia.setEstado("PUBLICACION_PENDIENTE");
+        emergencia.setDuracionConvocatoriaMinutos(solicitud.duracionMinutos());
+        emergencia.setPublicacionIntentos(0);
+        emergencia.setPublicacionProximoIntento(java.time.Instant.now());
+        var lotesDto = solicitud.lotes();
+        {
             List<LoteNecesidad> nuevosLotes = lotesDto.stream().map(loteDto -> {
                 LoteNecesidad lote = new LoteNecesidad();
-                lote.setTipoRecurso(loteDto.getTipoRecurso());
+                lote.setTipoRecurso(loteDto.getTipoRecurso().trim());
                 lote.setCantidadRequerida(loteDto.getCantidadRequerida());
                 lote.setCantidadCubierta(0);
                 lote.setEmergencia(emergencia);
@@ -75,17 +99,10 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
 
         Emergencia actualizada = emergenciaRepository.save(emergencia);
 
-        // AVANZAR TAREA EN BONITA
-        try {
-            if (actualizada.getCaseId() != null) {
-                bonitaService.avanzarPublicacionConvocatoria(actualizada.getCaseId());
-            }
-        } catch (Exception e) {
-            System.err.println("Error al avanzar tarea en Bonita: " + e.getMessage());
-        }
-
         return toResponseDTO(actualizada);
     }
+
+    private record LoteComparable(String tipo, Integer cantidad) {}
 
     @Transactional(readOnly = true)
     public List<EmergenciaResponseDTO> listarEmergencias(String estado) {
@@ -125,6 +142,14 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
                 .zonaAfectada(emergencia.getZonaAfectada())
                 .descripcion(emergencia.getDescripcion())
                 .estado(emergencia.getEstado())
+                .duracionConvocatoriaMinutos(emergencia.getDuracionConvocatoriaMinutos())
+                .fechaAperturaConvocatoria(emergencia.getFechaAperturaConvocatoria())
+                .fechaVencimientoConvocatoria(emergencia.getFechaVencimientoConvocatoria())
+                .fechaCierreConvocatoria(emergencia.getFechaCierreConvocatoria())
+                .motivoCierre(emergencia.getMotivoCierre())
+                .horaServidor(java.time.Instant.now())
+                .publicacionIntentos(emergencia.getPublicacionIntentos())
+                .publicacionError(emergencia.getPublicacionError())
                 .municipioNombre(emergencia.getMunicipioNombre());
 
         emergencia.popularCamposEspecificos(builder);

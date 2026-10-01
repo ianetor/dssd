@@ -1,3 +1,4 @@
+<p *ngIf="error" role="alert" class="max-w-7xl mx-auto p-4 text-red-800 bg-red-50 rounded">{{ error }}</p>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" *ngIf="emergencia">
   <!-- Top Operational Context Header -->
   <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -90,6 +91,7 @@
         </div>
 
         <form [formGroup]="loteForm" (ngSubmit)="agregarLote()" class="space-y-4">
+          <fieldset [disabled]="edicionBloqueada" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <!-- Nombre del Lote -->
             <div class="md:col-span-5 flex flex-col gap-1">
@@ -167,6 +169,7 @@
               <span>Agregar Lote</span>
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
 
@@ -227,12 +230,14 @@
               <div class="flex items-center gap-1">
                 <button type="button"
                         (click)="editarCantidadLote(i)"
+                        [disabled]="edicionBloqueada"
                         title="Modificar Cantidad"
                         class="p-2 text-slate-600 hover:bg-slate-200 rounded transition-all">
                   <span class="material-symbols-outlined text-[18px]">edit</span>
                 </button>
                 <button type="button"
                         (click)="eliminarLote(i)"
+                        [disabled]="edicionBloqueada"
                         title="Eliminar Lote"
                         class="p-2 text-red-600 hover:bg-red-50 rounded transition-all">
                   <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -277,16 +282,17 @@
             <span>Plazo de Recepción</span>
             <span class="material-symbols-outlined text-[16px] text-secondary">schedule</span>
           </label>
-          <select [(ngModel)]="timerSeleccionado"
+          <input type="number" min="1" step="1" aria-label="Cantidad de tiempo" [(ngModel)]="duracionCantidad"
+                 [disabled]="edicionBloqueada" class="w-full h-11 px-3 border border-slate-300 rounded">
+          <select [(ngModel)]="duracionUnidad" aria-label="Unidad de tiempo" [disabled]="edicionBloqueada"
                   class="w-full h-11 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] font-medium focus:ring-2 focus:ring-secondary outline-none">
-            <option value="4">4 horas (Respuesta Rápida - Emergencia Crítica)</option>
-            <option value="8">8 horas (Operativo Estándar Regional)</option>
-            <option value="12">12 horas (Logística Ampliada)</option>
-            <option value="24">24 horas (Aprovisionamiento Escalonado)</option>
+            <option value="minutos">Minutos</option>
+            <option value="horas">Horas</option>
           </select>
           <p class="text-[11px] text-slate-500 leading-tight">
-            Al vencer este temporizador, el motor cerrará la recepción para pasar a validación de ofertas.
+            La duración queda guardada al solicitar la publicación y no puede modificarse después.
           </p>
+          <p *ngIf="!duracionValida" class="text-xs text-red-700">Ingresá una cantidad entera positiva, hasta 2147483647 minutos.</p>
         </div>
 
         <!-- Resumen de Convocatoria -->
@@ -305,25 +311,33 @@
           </div>
           <div class="flex justify-between py-1 text-slate-600">
             <span>Ventana de recepción:</span>
-            <strong class="text-[#0b192c] font-mono">{{ timerSeleccionado }} horas</strong>
+            <strong class="text-[#0b192c] font-mono">{{ duracionCantidad }} {{ duracionUnidad }}</strong>
           </div>
+          <p *ngIf="emergencia.fechaAperturaConvocatoria">Inicio registrado: {{ emergencia.fechaAperturaConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
+          <p *ngIf="emergencia.fechaVencimientoConvocatoria">Vencimiento registrado: {{ emergencia.fechaVencimientoConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
         </div>
 
         <!-- Botón Publicar Convocatoria -->
         <div class="space-y-3 pt-2">
           <button type="button"
                   (click)="publicarConvocatoriaBonita()"
-                  [disabled]="isSubmitting || publicadoExitoso"
+                  [disabled]="edicionBloqueada || !duracionValida || lotesDesglosados.length === 0"
                   [ngClass]="publicadoExitoso ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#ea580c] hover:bg-[#c2410c]'"
                   class="w-full py-3.5 px-4 text-white text-sm font-bold rounded-lg shadow flex items-center justify-center gap-2 transition-all disabled:opacity-50">
             <span *ngIf="isSubmitting" class="material-symbols-outlined text-[20px] animate-spin">refresh</span>
             <span *ngIf="!isSubmitting && !publicadoExitoso" class="material-symbols-outlined text-[20px]">send</span>
             <span *ngIf="publicadoExitoso" class="material-symbols-outlined text-[20px]">verified</span>
             <span>
-              {{ isSubmitting ? 'Instanciando en Bonita...' : (publicadoExitoso ? 'Convocatoria Publicada en Bonita' : 'Publicar Convocatoria a la Red de ONGs') }}
+              {{ isSubmitting ? 'Guardando solicitud...' : (publicacionPendiente ? 'Publicación pendiente' : (publicadoExitoso ? 'Convocatoria Publicada en Bonita' : 'Publicar Convocatoria a la Red de ONGs')) }}
             </span>
           </button>
 
+          <div *ngIf="publicacionPendiente" role="status" class="p-3 bg-amber-50 border border-amber-300 rounded text-xs">
+            <strong>Solicitud guardada. Publicación pendiente de confirmación.</strong>
+            <p>La consulta se actualiza automáticamente. Podés salir y volver sin perder la solicitud.</p>
+            <p *ngIf="emergencia.publicacionError">{{ emergencia.publicacionError }}</p>
+            <p>Intentos realizados: {{ emergencia.publicacionIntentos || 0 }}</p>
+          </div>
           <!-- Toast Exitoso -->
           <div *ngIf="publicadoExitoso" class="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-900 text-xs flex items-start gap-2">
             <span class="material-symbols-outlined text-emerald-600 text-[20px] shrink-0">check_circle</span>

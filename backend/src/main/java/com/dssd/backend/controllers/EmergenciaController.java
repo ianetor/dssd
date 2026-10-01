@@ -38,9 +38,10 @@ public class EmergenciaController {
     @PostMapping("/{id}/lotes")
     public ResponseEntity<EmergenciaResponseDTO> publicarLotes(
             @PathVariable Long id,
-            @RequestBody List<LoteRequestDTO> lotesDTO) {
-        EmergenciaResponseDTO actualizada = emergenciaService.publicarLotes(id, lotesDTO);
-        return ResponseEntity.ok(actualizada);
+            @jakarta.validation.Valid @RequestBody com.dssd.backend.dtos.PublicacionConvocatoriaRequestDTO solicitud) {
+        EmergenciaResponseDTO actualizada = emergenciaService.publicarLotes(id, solicitud);
+        return ResponseEntity.status("PUBLICACION_PENDIENTE".equals(actualizada.getEstado())
+                ? HttpStatus.ACCEPTED : HttpStatus.OK).body(actualizada);
     }
 
     @GetMapping

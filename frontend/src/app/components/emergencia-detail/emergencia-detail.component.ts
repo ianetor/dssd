@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, Subscription, timer, catchError, exhaustMap, timeout } from 'rxjs';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { EmergenciaService } from '../../services/emergencia.service';
@@ -25,6 +27,8 @@ export class EmergenciaDetailComponent implements OnInit {
   private readonly emergenciaService = inject(EmergenciaService);
   private readonly fb = inject(FormBuilder);
   private readonly cd = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private seguimiento?: Subscription;
 
   emergencia?: Emergencia;
   listaEmergencias: Emergencia[] = [];
@@ -39,7 +43,52 @@ export class EmergenciaDetailComponent implements OnInit {
   lotesDesglosados: LoteItem[] = [];
 
   // Configuración de Convocatoria para Bonita BPM
-  timerSeleccionado = '4'; // 4 horas por defecto
+  duracionCantidad = 4;
+  duracionUnidad: 'minutos' | 'horas' = 'horas';
+
+  get duracionMinutos(): number {
+    return Number(this.duracionCantidad) * (this.duracionUnidad === 'horas' ? 60 : 1);
+  }
+
+  get duracionValida(): boolean {
+    return Number.isInteger(Number(this.duracionCantidad)) && Number(this.duracionCantidad) > 0
+      && Number.isSafeInteger(this.duracionMinutos) && this.duracionMinutos <= 2147483647;
+  }
+
+  get publicacionPendiente(): boolean { return this.emergencia?.estado === 'PUBLICACION_PENDIENTE'; }
+  get edicionBloqueada(): boolean {
+    return this.loading || this.isSubmitting || !this.emergencia || this.emergencia.estado !== 'REGISTRADA';
+  }
+
+  private recibirEmergencia(emergencia: Emergencia): void {
+    this.emergencia = emergencia;
+    this.publicadoExitoso = emergencia.estado === 'CONVOCATORIA_ABIERTA';
+    if (emergencia.duracionConvocatoriaMinutos != null) {
+      this.duracionCantidad = emergencia.duracionConvocatoriaMinutos;
+      this.duracionUnidad = 'minutos';
+    }
+    if (!this.publicacionPendiente) this.seguimiento?.unsubscribe();
+  }
+
+  private seguirPublicacion(id: number): void {
+    this.seguimiento?.unsubscribe();
+    if (!this.publicacionPendiente) return;
+    this.seguimiento = timer(2000, 5000).pipe(
+      exhaustMap(() => this.emergenciaService.obtenerPorId(id).pipe(
+        timeout(10000),
+        catchError(() => {
+          this.error = 'No se pudo consultar la publicación. Se volverá a intentar automáticamente.';
+          this.cd.detectChanges();
+          return EMPTY;
+        }),
+      )),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(emergencia => {
+      this.error = '';
+      this.recibirEmergencia(emergencia);
+      this.cd.detectChanges();
+    });
+  }
 
   loteForm = this.fb.group({
     nombre: ['', [
@@ -54,7 +103,8 @@ export class EmergenciaDetailComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe((params) => {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.seguimiento?.unsubscribe();
       const idParam = params.get('id');
       if (idParam) {
         this.cargar(Number(idParam));
@@ -69,15 +119,15 @@ export class EmergenciaDetailComponent implements OnInit {
     this.error = '';
     this.emergenciaService.obtenerPorId(id).subscribe({
       next: (emergencia) => {
-        this.emergencia = emergencia;
+        this.recibirEmergencia(emergencia);
         this.inicializarLotesDesdeEmergencia(emergencia);
+        this.seguirPublicacion(id);
         this.loading = false;
         this.cd.detectChanges();
       },
       error: () => {
-        this.error = `No se pudo conectar con el servidor para la emergencia #${id}. Mostrando plantilla operativa de contingencia.`;
-        this.emergencia = this.generarEmergenciaFallback(id);
-        this.inicializarLotesDesdeEmergencia(this.emergencia);
+        this.error = `No se pudo cargar la emergencia #${id}. Recargá la página para reintentar.`;
+        this.emergencia = undefined;
         this.loading = false;
         this.cd.detectChanges();
       },
@@ -90,18 +140,19 @@ export class EmergenciaDetailComponent implements OnInit {
       next: (list) => {
         this.listaEmergencias = list;
         if (list && list.length > 0) {
-          this.emergencia = list[0];
-          this.inicializarLotesDesdeEmergencia(this.emergencia);
+          this.recibirEmergencia(list[0]);
+          this.inicializarLotesDesdeEmergencia(list[0]);
+          this.seguirPublicacion(list[0].id!);
         } else {
-          this.emergencia = this.generarEmergenciaFallback(1);
-          this.inicializarLotesDesdeEmergencia(this.emergencia);
+          this.emergencia = undefined;
+          this.error = 'No hay emergencias disponibles para publicar.';
         }
         this.loading = false;
         this.cd.detectChanges();
       },
       error: () => {
-        this.emergencia = this.generarEmergenciaFallback(1);
-        this.inicializarLotesDesdeEmergencia(this.emergencia);
+        this.emergencia = undefined;
+        this.error = 'No se pudieron cargar las emergencias. Recargá la página para reintentar.';
         this.loading = false;
         this.cd.detectChanges();
       },
@@ -124,6 +175,7 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   agregarLote(): void {
+    if (this.edicionBloqueada) return;
     if (this.loteForm.invalid) {
       this.loteForm.markAllAsTouched();
       return;
@@ -162,6 +214,7 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   eliminarLote(index: number): void {
+    if (this.edicionBloqueada) return;
     const lote = this.lotesDesglosados[index];
     if (!lote) {
       return;
@@ -177,6 +230,7 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   confirmarEliminacion(): void {
+    if (this.edicionBloqueada) return;
     const index = this.lotePendienteDeEliminar;
     if (index === null) {
       return;
@@ -188,6 +242,7 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   editarCantidadLote(index: number): void {
+    if (this.edicionBloqueada) return;
     const lote = this.lotesDesglosados[index];
     const nuevaCant = prompt(`Ingrese nueva cantidad para '${lote.nombre}':`, String(lote.cantidad));
     if (nuevaCant && !isNaN(Number(nuevaCant)) && Number(nuevaCant) > 0) {
@@ -197,6 +252,11 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   publicarConvocatoriaBonita(): void {
+    if (this.edicionBloqueada) return;
+    if (!this.duracionValida) {
+      this.error = 'Ingresá una duración entera positiva, hasta 2147483647 minutos.';
+      return;
+    }
     if (!this.emergencia?.id) {
       this.error = 'No hay una emergencia seleccionada para publicar.';
       return;
@@ -215,38 +275,22 @@ export class EmergenciaDetailComponent implements OnInit {
       cantidadRequerida: l.cantidad,
     }));
 
-    this.emergenciaService.publicarLotes(this.emergencia.id, payload).subscribe({
+    this.emergenciaService.publicarLotes(this.emergencia.id, payload, this.duracionMinutos).subscribe({
       next: (actualizada) => {
-        this.emergencia = actualizada;
+        this.recibirEmergencia(actualizada);
         this.isSubmitting = false;
-        this.publicadoExitoso = true;
+        this.seguirPublicacion(actualizada.id!);
         this.cd.detectChanges();
       },
-      error: () => {
-        // En caso de que el backend no responda o devuelva mock, simulamos el éxito para evaluación
+      error: (err) => {
         this.isSubmitting = false;
-        this.publicadoExitoso = true;
-        if (this.emergencia) {
-          this.emergencia.estado = 'CONVOCATORIA_PUBLICADA';
-        }
+        this.publicadoExitoso = false;
+        this.error = err.status === 409
+          ? 'La emergencia ya tiene una publicación registrada. Recargá para consultar su estado.'
+          : 'No se pudo confirmar la solicitud de publicación. Podés reintentar sin duplicar los lotes.';
         this.cd.detectChanges();
       },
     });
   }
 
-  private generarEmergenciaFallback(id: number): Emergencia {
-    return {
-      id,
-      tipoEmergencia: 'INUNDACION',
-      nivelGravedad: 'CRITICO',
-      zonaAfectada: 'Municipio de San Nicolás — Cuenca Río Salado / Costanera Norte',
-      descripcion:
-        'Crecida extraordinaria del río con 420 familias aisladas en cuadrante noreste. Se requiere activación de logística combinada, rescate anfibio, alimentos secos y medicamentos básicos para contención in situ.',
-      estado: 'PENDIENTE_DESGLOSE',
-      municipioId: 1,
-      municipioNombre: 'Municipio de San Nicolás',
-      milimetrosAgua: 165.5,
-      lotes: [],
-    };
-  }
 }

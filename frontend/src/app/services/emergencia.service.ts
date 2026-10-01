@@ -28,7 +28,7 @@ export class EmergenciaService {
     return this.http.post<Emergencia>(this.apiUrl, payload);
   }
 
-  publicarLotes(id: number, lotes: LotePayload[]): Observable<Emergencia> {
-    return this.http.post<Emergencia>(`${this.apiUrl}/${id}/lotes`, lotes);
+  publicarLotes(id: number, lotes: LotePayload[], duracionMinutos: number): Observable<Emergencia> {
+    return this.http.post<Emergencia>(`${this.apiUrl}/${id}/lotes`, { lotes, duracionMinutos });
   }
 }

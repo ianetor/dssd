@@ -24,6 +24,14 @@ public class EmergenciaResponseDTO {
     private String zonaAfectada;
     private String descripcion;
     private String estado;
+    private Long duracionConvocatoriaMinutos;
+    private java.time.Instant fechaAperturaConvocatoria;
+    private java.time.Instant fechaVencimientoConvocatoria;
+    private java.time.Instant fechaCierreConvocatoria;
+    private String motivoCierre;
+    private java.time.Instant horaServidor;
+    private Integer publicacionIntentos;
+    private String publicacionError;
 
     private String municipioNombre;
 

@@ -12,6 +12,14 @@ export interface Emergencia {
   zonaAfectada: string;
   descripcion: string;
   estado: string;
+  duracionConvocatoriaMinutos?: number | null;
+  fechaAperturaConvocatoria?: string | null;
+  fechaVencimientoConvocatoria?: string | null;
+  fechaCierreConvocatoria?: string | null;
+  motivoCierre?: 'TIEMPO_AGOTADO' | 'COBERTURA_COMPLETA' | null;
+  horaServidor?: string;
+  publicacionIntentos?: number | null;
+  publicacionError?: string | null;
   municipioId?: number | null;
   municipioNombre?: string;
   hectareasAfectadas?: number | null;

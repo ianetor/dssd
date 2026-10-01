@@ -44,6 +44,10 @@ public class BonitaService {
         this.bonitaUrl = bonitaUrl;
         this.username = username;
         this.password = password;
+        var requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5000);
+        requestFactory.setReadTimeout(10000);
+        this.restTemplate.setRequestFactory(requestFactory);
     }
 
     // 1. Iniciar sesión y obtener cookies + token
@@ -118,7 +122,7 @@ public class BonitaService {
 
     public Long iniciarInstanciaEmergencia(EmergenciaRequestDTO dto, Long emergenciaId) {
         HttpHeaders headers = login();
-        System.out.println(headers);
+
         String processId = getProcessDefinitionId("RescueSync", "1.0", headers);
         System.out.println(processId);
         if (processId == null) {
@@ -240,55 +244,63 @@ public class BonitaService {
         }
     }
 
-    public void avanzarPublicacionConvocatoria(Long caseId) {
-        if (caseId == null) return;
+    private static final String TAREA_PUBLICACION = "Revisar Emergencia y Generar Lotes";
 
+    public Long buscarTareaPublicacion(Long caseId) {
         HttpHeaders headers = login();
-
-        String searchTaskUrl = bonitaUrl + "/API/bpm/humanTask?p=0&c=10&f=caseId=" + caseId + "&f=state=ready";
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(searchTaskUrl, HttpMethod.GET, requestEntity, String.class);
-            System.out.println("Tareas encontradas para caseId=" + caseId + ": " + response.getBody());
-            JsonNode root = objectMapper.readTree(response.getBody());
-
-            if (root.isArray() && root.size() > 0) {
-                String taskId = root.get(0).get("id").asText();
-                String taskName = root.get(0).get("name").asText();
-                System.out.println("Tarea: name=" + taskName + ", taskId=" + taskId);
-
-                // Obtener userId del usuario logueado
-                String userId = getUserId(headers);
-                System.out.println("UserId obtenido: " + userId);
-
-                // Asignar la tarea al usuario via PUT /API/bpm/humanTask/{taskId}
-                if (userId != null) {
-                    try {
-                        String assignUrl = bonitaUrl + "/API/bpm/humanTask/" + taskId;
-                        String assignJson = "{\"assigned_id\":" + userId + "}";
-                        HttpEntity<String> assignEntity = new HttpEntity<>(assignJson, headers);
-                        restTemplate.put(assignUrl, assignEntity);
-                        System.out.println("Tarea " + taskId + " asignada al userId=" + userId);
-                    } catch (Exception ex) {
-                        System.err.println("Error al asignar tarea: " + ex.getMessage());
-                    }
-                }
-
-                // Ejecutar/completar la tarea
-                String execUrl = bonitaUrl + "/API/bpm/userTask/" + taskId + "/execution?assign=true";
-                if (userId != null) {
-                    execUrl += "&user=" + userId;
-                }
-                HttpEntity<String> execEntity = new HttpEntity<>("{}", headers);
-                ResponseEntity<String> execResp = restTemplate.postForEntity(execUrl, execEntity, String.class);
-                System.out.println("Tarea " + taskId + " ejecutada con status=" + execResp.getStatusCode());
-            } else {
-                System.out.println("No se encontraron tareas pendientes para caseId=" + caseId);
+        JsonNode tareas = leerPublicacion("/API/bpm/humanTask?p=0&c=100&f=caseId=" + caseId + "&f=state=ready", headers);
+        Long encontrada = null;
+        for (JsonNode tarea : tareas) {
+            if (TAREA_PUBLICACION.equals(tarea.path("name").asText())) {
+                if (encontrada != null) throw new IllegalStateException("Más de una tarea de publicación para el caso");
+                encontrada = tarea.path("id").asLong();
             }
-        } catch (Exception e) {
-            System.err.println("Error al avanzar tarea en Bonita para caseId=" + caseId + ": " + e.getMessage());
-            e.printStackTrace();
+        }
+        if (encontrada == null) throw new IllegalStateException("La tarea de publicación no está disponible");
+        return encontrada;
+    }
+
+    public void confirmarPublicacion(Long caseId, Long taskId) {
+        HttpHeaders headers = login();
+        JsonNode tarea;
+        try {
+            tarea = leerPublicacion("/API/bpm/humanTask/" + taskId, headers);
+        } catch (HttpClientErrorException.NotFound ex) {
+            for (int pagina = 0; ; pagina++) {
+                // sourceObjectId no es un filtro documentado de archivedHumanTask.
+                JsonNode archivadas = leerPublicacion("/API/bpm/archivedHumanTask?p=" + pagina
+                        + "&c=100&f=state=completed&f=name=" + TAREA_PUBLICACION, headers);
+                for (JsonNode archivada : archivadas) {
+                    if (archivada.path("sourceObjectId").asLong() == taskId
+                            && archivada.path("parentCaseId").asLong() == caseId
+                            && TAREA_PUBLICACION.equals(archivada.path("name").asText())
+                            && "completed".equals(archivada.path("state").asText())) return;
+                }
+                if (archivadas.size() < 100) break;
+            }
+            throw new IllegalStateException("No se pudo verificar la ejecución de la tarea de publicación", ex);
+        }
+        if (tarea.path("parentCaseId").asLong() != caseId || !TAREA_PUBLICACION.equals(tarea.path("name").asText())) {
+            throw new IllegalStateException("La tarea no corresponde a la publicación del caso");
+        }
+        if ("completed".equals(tarea.path("state").asText())) return;
+        if (!"ready".equals(tarea.path("state").asText())) throw new IllegalStateException("Tarea de publicación no ejecutable");
+        String userId = getUserId(headers);
+        if (userId == null) throw new IllegalStateException("No se pudo identificar el usuario de Bonita");
+        restTemplate.put(bonitaUrl + "/API/bpm/humanTask/" + taskId,
+                new HttpEntity<>(Map.of("assigned_id", userId), headers));
+        // Etapa 1: contrato vacío existente. La fecha se enviará en la etapa 2.
+        restTemplate.postForEntity(bonitaUrl + "/API/bpm/userTask/" + taskId + "/execution?assign=true&user=" + userId,
+                new HttpEntity<>(Map.of(), headers), String.class);
+    }
+
+    private JsonNode leerPublicacion(String path, HttpHeaders headers) {
+        String body = restTemplate.exchange(bonitaUrl + path, HttpMethod.GET,
+                new HttpEntity<>(headers), String.class).getBody();
+        try {
+            return objectMapper.readTree(body);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Respuesta de Bonita inválida", ex);
         }
     }
 
