@@ -27,8 +27,7 @@ public class OfertaAyuda {
     @Column(nullable = false, length = 50)
     private String estado;
 
-    @NotNull
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Integer nivelHabilitacion;
 
     @Column(nullable = false)
