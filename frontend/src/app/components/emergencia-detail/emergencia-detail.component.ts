@@ -56,6 +56,11 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   get publicacionPendiente(): boolean { return this.emergencia?.estado === 'PUBLICACION_PENDIENTE'; }
+  get convocatoriaCerrada(): boolean { return this.emergencia?.estado === 'CONVOCATORIA_CERRADA'; }
+  private get requiereSeguimiento(): boolean {
+    return this.publicacionPendiente || (this.emergencia?.estado === 'CONVOCATORIA_ABIERTA'
+      && !!this.emergencia.fechaVencimientoConvocatoria);
+  }
   get edicionBloqueada(): boolean {
     return this.loading || this.isSubmitting || !this.emergencia || this.emergencia.estado !== 'REGISTRADA';
   }
@@ -67,17 +72,17 @@ export class EmergenciaDetailComponent implements OnInit {
       this.duracionCantidad = emergencia.duracionConvocatoriaMinutos;
       this.duracionUnidad = 'minutos';
     }
-    if (!this.publicacionPendiente) this.seguimiento?.unsubscribe();
+    if (!this.requiereSeguimiento) this.seguimiento?.unsubscribe();
   }
 
   private seguirPublicacion(id: number): void {
     this.seguimiento?.unsubscribe();
-    if (!this.publicacionPendiente) return;
+    if (!this.requiereSeguimiento) return;
     this.seguimiento = timer(2000, 5000).pipe(
       exhaustMap(() => this.emergenciaService.obtenerPorId(id).pipe(
         timeout(10000),
         catchError(() => {
-          this.error = 'No se pudo consultar la publicación. Se volverá a intentar automáticamente.';
+          this.error = 'No se pudo consultar el estado de la convocatoria. Se volverá a intentar automáticamente.';
           this.cd.detectChanges();
           return EMPTY;
         }),

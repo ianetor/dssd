@@ -97,4 +97,24 @@ describe('Publicación de convocatoria', () => {
       vi.useRealTimers();
     }
   });
+
+  it('actualiza una convocatoria abierta al cerrarse y detiene el seguimiento', () => {
+    vi.useFakeTimers();
+    const { fixture, c } = crear();
+    try {
+      const publicada = { ...emergencia, estado: 'CONVOCATORIA_ABIERTA',
+        fechaVencimientoConvocatoria: '2026-10-04T12:00:00Z' };
+      servicio.obtenerPorId.mockReturnValueOnce(of(publicada))
+        .mockReturnValue(of({ ...publicada, estado: 'CONVOCATORIA_CERRADA', motivoCierre: 'TIEMPO_AGOTADO' }));
+      c.cargar(1);
+      vi.advanceTimersByTime(2000);
+      expect(c.convocatoriaCerrada).toBe(true);
+      expect(c.publicadoExitoso).toBe(false);
+      expect(c.edicionBloqueada).toBe(true);
+      vi.advanceTimersByTime(15000);
+      expect(servicio.obtenerPorId).toHaveBeenCalledTimes(2);
+    } finally {
+      fixture.destroy(); vi.useRealTimers();
+    }
+  });
 });

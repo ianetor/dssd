@@ -13,17 +13,21 @@ import { Emergencia } from '../../models/emergencia.model';
 import { RolUsuario } from '../../models/auth.model';
 import { EmergenciaService } from '../../services/emergencia.service';
 import { AuthService } from '../../services/auth.service';
+import { OfertaService } from '../../services/oferta.service';
+import { TextoCodigoPipe } from '../../pipes/texto-codigo.pipe';
+import { forkJoin, of } from 'rxjs';
 
 @Component({
   selector: 'app-emergencias-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TextoCodigoPipe],
   templateUrl: './emergencias-list.component.html',
   styleUrls: ['./emergencias-list.component.scss'],
 })
 export class EmergenciasListComponent implements OnInit {
   protected readonly emergenciaService = inject(EmergenciaService);
   protected readonly authService = inject(AuthService);
+  private readonly ofertaService = inject(OfertaService);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
   // Inputs para comportamiento compartido
@@ -45,6 +49,24 @@ export class EmergenciasListComponent implements OnInit {
 
   // Filtro activo para Coordinadores / Auditores
   filtroEstadoSeleccionado = 'TODAS';
+  private participaciones = new Set<number>();
+
+  get filtrosEstado(): { valor: string; etiqueta: string }[] {
+    if (this.esRepresentanteOng) {
+      return [
+        { valor: 'CONVOCATORIA_ABIERTA', etiqueta: 'Convocatoria abierta' },
+        { valor: 'CONVOCATORIA_CERRADA', etiqueta: 'Convocatoria cerrada' },
+        { valor: 'PARTICIPACION', etiqueta: 'Convocatorias con mi participación' },
+      ];
+    }
+    return [
+      { valor: 'TODAS', etiqueta: 'Todas' },
+      { valor: 'CONVOCATORIA_ABIERTA', etiqueta: 'Convocatoria abierta' },
+      { valor: 'REGISTRADA', etiqueta: 'Registradas' },
+      { valor: 'CONVOCATORIA_CERRADA', etiqueta: 'Convocatoria cerrada' },
+      { valor: 'PUBLICACION_PENDIENTE', etiqueta: 'Pendientes' },
+    ];
+  }
 
   get userRole(): RolUsuario | null {
     return this.authService.userRole();
@@ -66,15 +88,9 @@ export class EmergenciasListComponent implements OnInit {
     return this.userRole === 'OPERADOR_MUNICIPAL';
   }
 
-  /**
-   * Determina si se deben forzar únicamente convocatorias abiertas.
-   * Si es REPRESENTANTE_ONG, es SIEMPRE estricto a CONVOCATORIA_ABIERTA.
-   */
+  /** Las ONGs disponen siempre de abiertas, cerradas y participación. */
   get debeFiltrarSoloAbiertas(): boolean {
-    if (this.soloConvocatoriaAbierta !== undefined) {
-      return this.soloConvocatoriaAbierta;
-    }
-    return false;
+    return !this.esRepresentanteOng && this.soloConvocatoriaAbierta === true;
   }
 
   ngOnInit(): void {
@@ -84,13 +100,21 @@ export class EmergenciasListComponent implements OnInit {
   cargarEmergencias(): void {
     this.loading = true;
     this.error = '';
+    if (this.esRepresentanteOng && !this.filtrosEstado.some(f => f.valor === this.filtroEstadoSeleccionado)) {
+      this.filtroEstadoSeleccionado = 'CONVOCATORIA_ABIERTA';
+    }
 
     const parametroEstado = this.debeFiltrarSoloAbiertas ? 'CONVOCATORIA_ABIERTA' : undefined;
 
-    this.emergenciaService.listar(parametroEstado).subscribe({
-      next: (data) => {
-        // Garantía estricta de regla de negocio: si el rol es REPRESENTANTE_ONG, SI O SI solo ve CONVOCATORIA_ABIERTA
-        if (this.debeFiltrarSoloAbiertas) {
+    forkJoin({
+      emergencias: this.emergenciaService.listar(parametroEstado),
+      ofertas: this.esRepresentanteOng ? this.ofertaService.listar() : of([]),
+    }).subscribe({
+      next: ({ emergencias: data, ofertas }) => {
+        this.participaciones = new Set(ofertas.flatMap(o => o.emergenciaId == null ? [] : [o.emergenciaId]));
+        if (this.esRepresentanteOng) {
+          this.emergencias = data.filter(e => ['CONVOCATORIA_ABIERTA', 'CONVOCATORIA_CERRADA'].includes(e.estado));
+        } else if (this.debeFiltrarSoloAbiertas) {
           this.emergencias = data.filter((e) => e.estado === 'CONVOCATORIA_ABIERTA');
         } else {
           this.emergencias = data;
@@ -111,14 +135,17 @@ export class EmergenciasListComponent implements OnInit {
 
   cambiarFiltroTab(estadoTab: string): void {
     if (this.debeFiltrarSoloAbiertas) {
-      return; // El representante ONG no puede ver otro estado
+      return;
     }
+    if (!this.filtrosEstado.some(f => f.valor === estadoTab)) return;
     this.filtroEstadoSeleccionado = estadoTab;
     this.aplicarFiltroTab();
   }
 
   private aplicarFiltroTab(): void {
-    if (this.debeFiltrarSoloAbiertas || this.filtroEstadoSeleccionado === 'TODAS') {
+    if (this.esRepresentanteOng && this.filtroEstadoSeleccionado === 'PARTICIPACION') {
+      this.emergenciasFiltradas = this.emergencias.filter(e => e.id != null && this.participaciones.has(e.id));
+    } else if (this.debeFiltrarSoloAbiertas || this.filtroEstadoSeleccionado === 'TODAS') {
       this.emergenciasFiltradas = [...this.emergencias];
     } else {
       this.emergenciasFiltradas = this.emergencias.filter(

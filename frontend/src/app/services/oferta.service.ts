@@ -21,11 +21,11 @@ export class OfertaService {
     return { headers: this.headers(), withCredentials: true };
   }
 
-  /** Lista las ofertas del usuario actual para la emergencia dada. */
-  listar(emergenciaId: number): Observable<OfertaLocal[]> {
+  /** Lista las ofertas propias, opcionalmente filtradas por emergencia. */
+  listar(emergenciaId?: number): Observable<OfertaLocal[]> {
     return this.http.get<OfertaLocal[]>(this.url, {
       ...this.options(),
-      params: { emergenciaId },
+      params: emergenciaId == null ? {} : { emergenciaId },
     });
   }
 

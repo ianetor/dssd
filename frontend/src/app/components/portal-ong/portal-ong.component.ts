@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angul
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { forkJoin, Subscription } from 'rxjs';
+import { EMPTY, catchError, exhaustMap, forkJoin, Subscription, timer, timeout } from 'rxjs';
 import { OfertaService } from '../../services/oferta.service';
 import { OfertaLocal } from '../../models/oferta.model';
 import { EmergenciaService } from '../../services/emergencia.service';
@@ -36,6 +36,7 @@ export class PortalOngComponent implements OnInit {
   private readonly cd = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private carga?: Subscription;
+  private seguimiento?: Subscription;
 
   emergenciaSeleccionada: Emergencia | null = null;
   loadingEmergencia = false;
@@ -71,6 +72,9 @@ export class PortalOngComponent implements OnInit {
       && !this.loteEstaCompleto(this.loteSeleccionado)
       && this.emergenciaSeleccionada?.estado === 'CONVOCATORIA_ABIERTA';
   }
+  get convocatoriaCerrada(): boolean {
+    return this.emergenciaSeleccionada?.estado === 'CONVOCATORIA_CERRADA';
+  }
 
   ngOnInit(): void {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
@@ -85,6 +89,7 @@ export class PortalOngComponent implements OnInit {
 
   cargarEmergencia(id: number): void {
     this.carga?.unsubscribe();
+    this.seguimiento?.unsubscribe();
     this.loadingEmergencia = true;
     this.ofertas = [];
     this.emergenciaSeleccionada = null;
@@ -113,6 +118,7 @@ export class PortalOngComponent implements OnInit {
           this.form.patchValue({ loteId: String(loteDisponible?.loteId ?? '') });
         }
         this.loadingEmergencia = false;
+        this.seguirEstado(id);
         this.cd.detectChanges();
       },
       error: err => {
@@ -121,6 +127,29 @@ export class PortalOngComponent implements OnInit {
           : 'No se pudieron consultar los lotes y las ofertas en la base de datos. Reintente la carga.';
         this.cd.detectChanges();
       },
+    });
+  }
+
+  private seguirEstado(id: number): void {
+    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA') return;
+    this.seguimiento = timer(5000, 5000).pipe(
+      exhaustMap(() => this.guardando ? EMPTY : this.emergenciaService.obtenerPorId(id).pipe(
+        timeout(10000),
+        catchError(() => {
+          this.error = 'No se pudo actualizar el estado de la convocatoria. Se volverá a intentar.';
+          this.cd.detectChanges();
+          return EMPTY;
+        }),
+      )),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(emergencia => {
+      this.emergenciaSeleccionada = emergencia;
+      if (emergencia.estado !== 'CONVOCATORIA_ABIERTA') {
+        this.cancelarEdicion();
+        this.cerrarConfirmacion();
+        this.seguimiento?.unsubscribe();
+      }
+      this.cd.detectChanges();
     });
   }
 
@@ -251,6 +280,7 @@ export class PortalOngComponent implements OnInit {
         this.guardando = false;
         this.cerrarConfirmacion();
         this.error = err.error?.message ?? 'No se pudo retirar la oferta.';
+        if (err.status === 409) this.cargarEmergencia(emergenciaId);
         this.cd.detectChanges();
       },
     });

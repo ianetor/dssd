@@ -3,8 +3,6 @@ package com.dssd.backend.services;
 import com.dssd.backend.models.Emergencia;
 import com.dssd.backend.repositories.EmergenciaRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -27,10 +25,6 @@ public class PublicacionConvocatoriaWorker {
         this.bonita = bonita;
         this.tx = new TransactionTemplate(transactionManager);
     }
-
-    @Configuration
-    @EnableScheduling
-    static class Scheduling {}
 
     @Scheduled(fixedDelayString = "${convocatoria.publicacion.intervalo-ms:5000}")
     public void procesarPendientes() {

@@ -13,4 +13,14 @@ public interface EmergenciaRepository extends JpaRepository<Emergencia, Long> {
     java.util.Optional<Emergencia> bloquearPorId(@org.springframework.data.repository.query.Param("id") Long id);
 
     List<Emergencia> findByEstado(String estado);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("""
+            update Emergencia e set e.estado = 'CONVOCATORIA_CERRADA',
+                e.fechaCierreConvocatoria = e.fechaVencimientoConvocatoria,
+                e.motivoCierre = 'TIEMPO_AGOTADO'
+            where e.estado = 'CONVOCATORIA_ABIERTA'
+                and e.fechaVencimientoConvocatoria <= :ahora
+            """)
+    int cerrarVencidas(@org.springframework.data.repository.query.Param("ahora") java.time.Instant ahora);
 }

@@ -49,6 +49,7 @@ services:
       BONITA_PROCESS_NAME: RescueSync
       BONITA_PROCESS_VERSION: "1.0"
       CONVOCATORIA_PUBLICACION_INTERVALO_MS: 5000
+      CONVOCATORIA_CIERRE_INTERVALO_MS: 5000
     volumes:
       - ./backend:/app
       - maven_cache:/root/.m2

@@ -19,6 +19,7 @@ public class OfertaService {
     private final OfertaAyudaRepository ofertas;
     private final LoteNecesidadRepository lotes;
     private final DetalleOfertaRepository detalles;
+    private final EmergenciaRepository emergencias;
     private String ong(UsuarioResponseDTO usuario) {
         // Bonita autentica al representante. No se mantiene un padrón local de usuarios.
         String username = usuario.getUsername();
@@ -38,11 +39,14 @@ public class OfertaService {
 
     public OfertaResponseDTO crear(UsuarioResponseDTO usuario, OfertaRequestDTO dto) {
         String ong = ong(usuario);
+        bloquearEmergencia(dto.emergenciaId());
         LoteNecesidad lote = bloquear(dto.loteId());
         validar(lote, dto, 0);
         OfertaAyuda oferta = new OfertaAyuda();
         oferta.setOngLider(ong);
         oferta.setEstado("Registrada");
+        // La habilitación se evalúa después; registrar no implica acreditarla.
+        oferta.setNivelHabilitacion(0);
         DetalleOferta detalle = new DetalleOferta();
         detalle.setLote(lote);
         detalle.setOferta(oferta);
@@ -80,6 +84,9 @@ public class OfertaService {
     private OfertaAyuda propia(UsuarioResponseDTO usuario, Long id) {
         var emergenciaIds = ofertas.emergenciaDeOferta(id, ong(usuario));
         if (emergenciaIds.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oferta no encontrada");
+        // Mismo orden que al crear: emergencia, oferta y lote. El cierre compite
+        // por la fila de emergencia; no puede cambiarla durante esta operación.
+        bloquearEmergencia(emergenciaIds.get(0));
         OfertaAyuda oferta = ofertas.bloquearPropia(id, ong(usuario))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Oferta no encontrada"));
         if (!List.of("Registrada", "Rectificada").contains(oferta.getEstado())) {
@@ -96,8 +103,27 @@ public class OfertaService {
     private LoteNecesidad lote(OfertaAyuda oferta) { return oferta.getDetalles().get(0).getLote(); }
 
     private void abierta(LoteNecesidad lote) {
-        if ("PUBLICACION_PENDIENTE".equals(lote.getEmergencia().getEstado())) {
+        abierta(lote.getEmergencia());
+    }
+
+    private void bloquearEmergencia(Long id) {
+        Emergencia emergencia = emergencias.bloquearPorId(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Emergencia no encontrada"));
+        abierta(emergencia);
+    }
+
+    private void abierta(Emergencia emergencia) {
+        if ("PUBLICACION_PENDIENTE".equals(emergencia.getEstado())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La convocatoria está pendiente de publicación");
+        }
+        if (!"CONVOCATORIA_ABIERTA".equals(emergencia.getEstado())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La convocatoria no está abierta para recibir o modificar ofertas");
+        }
+        if (emergencia.getFechaVencimientoConvocatoria() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La convocatoria no tiene un vencimiento configurado");
+        }
+        if (!Instant.now().isBefore(emergencia.getFechaVencimientoConvocatoria())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El plazo de la convocatoria terminó; las ofertas quedan disponibles para consulta");
         }
     }
 

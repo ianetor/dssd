@@ -315,6 +315,10 @@
           </div>
           <p *ngIf="emergencia.fechaAperturaConvocatoria">Inicio registrado: {{ emergencia.fechaAperturaConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
           <p *ngIf="emergencia.fechaVencimientoConvocatoria">Vencimiento registrado: {{ emergencia.fechaVencimientoConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
+          <p *ngIf="convocatoriaCerrada" class="font-semibold text-slate-700">
+            Convocatoria cerrada por vencimiento del plazo. Las ofertas quedan disponibles para consulta.
+          </p>
+          <p *ngIf="emergencia.fechaCierreConvocatoria">Cierre: {{ emergencia.fechaCierreConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
         </div>
 
         <!-- Botón Publicar Convocatoria -->
@@ -328,7 +332,7 @@
             <span *ngIf="!isSubmitting && !publicadoExitoso" class="material-symbols-outlined text-[20px]">send</span>
             <span *ngIf="publicadoExitoso" class="material-symbols-outlined text-[20px]">verified</span>
             <span>
-              {{ isSubmitting ? 'Guardando solicitud...' : (publicacionPendiente ? 'Publicación pendiente' : (publicadoExitoso ? 'Convocatoria Publicada en Bonita' : 'Publicar Convocatoria a la Red de ONGs')) }}
+              {{ isSubmitting ? 'Guardando solicitud...' : (convocatoriaCerrada ? 'Convocatoria cerrada' : (publicacionPendiente ? 'Publicación pendiente' : (publicadoExitoso ? 'Convocatoria Publicada en Bonita' : 'Publicar Convocatoria a la Red de ONGs'))) }}
             </span>
           </button>
 

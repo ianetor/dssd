@@ -10,12 +10,10 @@
           'Registro General' }}</span>
       </div>
       <h1 class="text-2xl font-bold text-[#0b192c]">
-        {{ titulo || (debeFiltrarSoloAbiertas ? 'Convocatorias de Emergencia Activas' : 'Registro Integral de
-        Emergencias') }}
+        {{ titulo || (esRepresentanteOng ? 'Convocatorias de Emergencia' : (debeFiltrarSoloAbiertas ? 'Convocatorias de Emergencia Activas' : 'Registro Integral de Emergencias')) }}
       </h1>
       <p class="text-xs sm:text-sm text-slate-500 mt-1">
-        {{ subtitulo || (debeFiltrarSoloAbiertas ? 'Listado oficial de contingencias con convocatoria abierta para
-        recepción de ofertas de ONGs.' : 'Monitoreo de estado operativo, convocatorias y recursos demandados.') }}
+        {{ subtitulo || (esRepresentanteOng ? 'Consultá convocatorias abiertas, cerradas y aquellas en las que hiciste ofertas.' : (debeFiltrarSoloAbiertas ? 'Listado oficial de contingencias con convocatoria abierta para recepción de ofertas de ONGs.' : 'Monitoreo de estado operativo, convocatorias y recursos demandados.')) }}
       </p>
     </div>
 
@@ -35,32 +33,17 @@
     </div>
   </div>
 
-  <!-- Barra de Filtros por Estado para Coordinadores y Auditores (Ven todas) -->
-  <div *ngIf="!debeFiltrarSoloAbiertas && emergencias.length > 0"
+  <!-- Filtros disponibles según el rol -->
+  <div *ngIf="!debeFiltrarSoloAbiertas && (esRepresentanteOng || emergencias.length > 0)"
     class="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface-container-low rounded-xl border border-slate-200">
-    <div class="flex items-center gap-2">
-      <span class="text-xs font-mono font-semibold text-slate-500 uppercase">Filtrar Estado:</span>
-      <div class="flex items-center gap-1.5">
-        <button type="button" (click)="cambiarFiltroTab('TODAS')"
-          [ngClass]="filtroEstadoSeleccionado === 'TODAS' ? 'bg-[#0b192c] text-white font-bold' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'"
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-mono font-semibold text-slate-500 uppercase">Filtrar:</span>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button *ngFor="let filtro of filtrosEstado" type="button" (click)="cambiarFiltroTab(filtro.valor)"
+          [attr.aria-pressed]="filtroEstadoSeleccionado === filtro.valor"
+          [ngClass]="filtroEstadoSeleccionado === filtro.valor ? 'bg-[#0b192c] text-white font-bold' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'"
           class="px-3 py-1 rounded-lg text-xs transition-all">
-          Todas ({{ emergencias.length }})
-        </button>
-        <button type="button" (click)="cambiarFiltroTab('CONVOCATORIA_ABIERTA')"
-          [ngClass]="filtroEstadoSeleccionado === 'CONVOCATORIA_ABIERTA' ? 'bg-emerald-700 text-white font-bold' : 'bg-white text-emerald-800 hover:bg-emerald-50 border border-emerald-300'"
-          class="px-3 py-1 rounded-lg text-xs transition-all flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>Convocatoria Abierta</span>
-        </button>
-        <button type="button" (click)="cambiarFiltroTab('REGISTRADA')"
-          [ngClass]="filtroEstadoSeleccionado === 'REGISTRADA' ? 'bg-blue-700 text-white font-bold' : 'bg-white text-blue-800 hover:bg-blue-50 border border-blue-200'"
-          class="px-3 py-1 rounded-lg text-xs transition-all">
-          Registradas
-        </button>
-        <button type="button" (click)="cambiarFiltroTab('PUBLICACION_PENDIENTE')"
-          [ngClass]="filtroEstadoSeleccionado === 'PUBLICACION_PENDIENTE' ? 'bg-blue-700 text-white font-bold' : 'bg-white text-blue-800 hover:bg-blue-50 border border-blue-200'"
-          class="px-3 py-1 rounded-lg text-xs transition-all">
-          Pendientes
+          {{ filtro.etiqueta }}<span *ngIf="filtro.valor === 'TODAS'"> ({{ emergencias.length }})</span>
         </button>
       </div>
     </div>
@@ -101,10 +84,10 @@
       este filtro' }}
     </h3>
     <p class="text-xs text-slate-500 max-w-md mx-auto">
-      {{ debeFiltrarSoloAbiertas
+      {{ esRepresentanteOng ? 'Probá otro filtro o actualizá el listado para consultar las convocatorias disponibles.' : (debeFiltrarSoloAbiertas
       ? 'Las emergencias se habilitarán automáticamente para postular cuando el Coordinador Regional publique los lotes
       de necesidad.'
-      : 'Puede crear una nueva emergencia o ajustar el filtro seleccionado.' }}
+      : 'Puede crear una nueva emergencia o ajustar el filtro seleccionado.') }}
     </p>
   </div>
 
@@ -141,7 +124,7 @@
             <div *ngIf="!esConvocatoriaAbierta(emg) && emg.estado !== 'PUBLICACION_PENDIENTE'"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-300">
               <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-              <span>{{ emg.estado || 'REGISTRADA' }}</span>
+              <span>{{ (emg.estado || 'REGISTRADA') | textoCodigo }}</span>
             </div>
 
             <div *ngIf="emg.estado === 'PUBLICACION_PENDIENTE'"
@@ -275,7 +258,7 @@
             </a>
 
             <!-- Si no está abierta aún -->
-            <a *ngIf="!esConvocatoriaAbierta(emg)" [routerLink]="['/emergencias', emg.id]"
+            <a *ngIf="emg.estado === 'REGISTRADA'" [routerLink]="['/emergencias', emg.id]"
               class="px-3 py-1.5 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
               <span class="material-symbols-outlined text-[16px]">campaign</span>
               <span>Desglosar y publicar lotes</span>

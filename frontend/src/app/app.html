@@ -73,7 +73,7 @@
                     'bg-purple-500/20 text-purple-400 border-purple-500/40': authService.userRole() === 'REPRESENTANTE_ONG',
                     'bg-emerald-500/20 text-emerald-400 border-emerald-500/40': authService.userRole() === 'AUDITOR_DIRECTIVO'
                   }" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border uppercase">
-              {{ authService.userRole() }}
+              {{ authService.userRole() | textoCodigo }}
             </span>
           </div>
           <div class="text-[10px] text-slate-400 font-mono">{{ authService.entityName() }}</div>
