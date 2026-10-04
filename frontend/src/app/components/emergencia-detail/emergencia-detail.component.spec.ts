@@ -79,4 +79,22 @@ describe('Publicación de convocatoria', () => {
     expect(c.edicionBloqueada).toBe(true);
     fixture.destroy();
   });
+
+  it('retoma el seguimiento al recargar una publicación pendiente y lo detiene al confirmarse', () => {
+    vi.useFakeTimers();
+    const { fixture, c } = crear();
+    try {
+      servicio.obtenerPorId.mockReturnValueOnce(of({ ...emergencia, estado: 'PUBLICACION_PENDIENTE', duracionConvocatoriaMinutos: 1 }))
+        .mockReturnValue(of({ ...emergencia, estado: 'CONVOCATORIA_ABIERTA', duracionConvocatoriaMinutos: 1 }));
+      c.cargar(1);
+      expect(c.publicacionPendiente).toBe(true);
+      vi.advanceTimersByTime(2000);
+      expect(c.publicadoExitoso).toBe(true);
+      vi.advanceTimersByTime(15000);
+      expect(servicio.obtenerPorId).toHaveBeenCalledTimes(2);
+    } finally {
+      fixture.destroy();
+      vi.useRealTimers();
+    }
+  });
 });

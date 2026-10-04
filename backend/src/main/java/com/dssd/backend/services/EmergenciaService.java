@@ -1,6 +1,6 @@
 package com.dssd.backend.services;
 
-import com.dssd.backend.dtos.LoteRequestDTO;
+import com.dssd.backend.dtos.PublicacionConvocatoriaRequestDTO;
 import com.dssd.backend.dtos.LoteResponseDTO;
 import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaRequestDTO;
 import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaResponseDTO;
@@ -9,6 +9,9 @@ import com.dssd.backend.repositories.EmergenciaRepository;
 import com.dssd.backend.repositories.LoteNecesidadRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import java.time.Instant;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,9 +56,9 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
         return toResponseDTO(guardada);
     }
 
-    public EmergenciaResponseDTO publicarLotes(Long emergenciaId, com.dssd.backend.dtos.PublicacionConvocatoriaRequestDTO solicitud) {
+    public EmergenciaResponseDTO publicarLotes(Long emergenciaId, PublicacionConvocatoriaRequestDTO solicitud) {
         Emergencia emergencia = emergenciaRepository.bloquearPorId(emergenciaId)
-                .orElseThrow(() -> new NoSuchElementException("Emergencia no encontrada con ID: " + emergenciaId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Emergencia no encontrada"));
         if (emergencia.getDuracionConvocatoriaMinutos() != null) {
             var existentes = emergencia.getLotes().stream()
                     .map(l -> new LoteComparable(l.getTipoRecurso(), l.getCantidadRequerida()))
@@ -65,37 +68,30 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
                     .collect(Collectors.groupingBy(l -> l, Collectors.counting()));
             if (!emergencia.getDuracionConvocatoriaMinutos().equals(solicitud.duracionMinutos())
                     || !existentes.equals(solicitados)) {
-                throw new org.springframework.web.server.ResponseStatusException(
-                        org.springframework.http.HttpStatus.CONFLICT, "La convocatoria ya tiene otra publicación registrada");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "La convocatoria ya tiene otra publicación registrada");
             }
             return toResponseDTO(emergencia);
         }
         if (!"REGISTRADA".equals(emergencia.getEstado()) || !emergencia.getLotes().isEmpty()) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.CONFLICT, "La emergencia no admite una nueva publicación");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La emergencia no admite una nueva publicación");
         }
         if (emergencia.getCaseId() == null) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.CONFLICT, "La emergencia no tiene un caso de Bonita asociado");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La emergencia no tiene un caso de Bonita asociado");
         }
         emergencia.setEstado("PUBLICACION_PENDIENTE");
         emergencia.setDuracionConvocatoriaMinutos(solicitud.duracionMinutos());
         emergencia.setPublicacionIntentos(0);
-        emergencia.setPublicacionProximoIntento(java.time.Instant.now());
-        var lotesDto = solicitud.lotes();
-        {
-            List<LoteNecesidad> nuevosLotes = lotesDto.stream().map(loteDto -> {
+        emergencia.setPublicacionProximoIntento(Instant.now());
+        List<LoteNecesidad> nuevosLotes = solicitud.lotes().stream().map(loteDto -> {
                 LoteNecesidad lote = new LoteNecesidad();
                 lote.setTipoRecurso(loteDto.getTipoRecurso().trim());
                 lote.setCantidadRequerida(loteDto.getCantidadRequerida());
                 lote.setCantidadCubierta(0);
                 lote.setEmergencia(emergencia);
                 return lote;
-            }).collect(Collectors.toList());
-
-            loteNecesidadRepository.saveAll(nuevosLotes);
-            emergencia.getLotes().addAll(nuevosLotes);
-        }
+        }).collect(Collectors.toList());
+        loteNecesidadRepository.saveAll(nuevosLotes);
+        emergencia.getLotes().addAll(nuevosLotes);
 
         Emergencia actualizada = emergenciaRepository.save(emergencia);
 
@@ -147,7 +143,7 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
                 .fechaVencimientoConvocatoria(emergencia.getFechaVencimientoConvocatoria())
                 .fechaCierreConvocatoria(emergencia.getFechaCierreConvocatoria())
                 .motivoCierre(emergencia.getMotivoCierre())
-                .horaServidor(java.time.Instant.now())
+                .horaServidor(Instant.now())
                 .publicacionIntentos(emergencia.getPublicacionIntentos())
                 .publicacionError(emergencia.getPublicacionError())
                 .municipioNombre(emergencia.getMunicipioNombre());

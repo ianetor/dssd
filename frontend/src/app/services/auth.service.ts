@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap, finalize } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../enviroments/environment';
 import { LoginCredentials, RolUsuario, UsuarioAutenticado } from '../models/auth.model';
 
@@ -35,9 +35,7 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem(STORAGE_KEY);
     this.currentUser.set(null);
-    this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).pipe(
-      finalize(() => this.router.navigate(['/login']))
-    ).subscribe({ error: () => {} });
+    void this.router.navigate(['/login']);
   }
 
   hasRole(roles: RolUsuario[]): boolean {

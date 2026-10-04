@@ -47,7 +47,7 @@ public class PublicacionConvocatoriaWorker {
     public void procesar(Long id) {
         Boolean preparado = tx.execute(status -> {
             Emergencia e = emergencias.bloquearPorId(id).orElseThrow();
-            Instant ahora = Instant.now();
+            Instant ahora = Instant.now().truncatedTo(ChronoUnit.MILLIS);
             if (!pendiente(e) || (e.getPublicacionProximoIntento() != null
                     && e.getPublicacionProximoIntento().isAfter(ahora))) return false;
             if (e.getFechaAperturaConvocatoria() == null) {
@@ -71,7 +71,8 @@ public class PublicacionConvocatoriaWorker {
             tx.executeWithoutResult(status -> {
                 Emergencia e = emergencias.bloquearPorId(id).orElseThrow();
                 if (!pendiente(e)) return;
-                bonita.confirmarPublicacion(e.getCaseId(), e.getPublicacionTaskId());
+                bonita.confirmarPublicacion(e.getCaseId(), e.getPublicacionTaskId(),
+                        e.getId(), e.getFechaVencimientoConvocatoria());
                 e.setEstado("CONVOCATORIA_ABIERTA");
                 e.setPublicacionError(null);
                 e.setPublicacionProximoIntento(null);

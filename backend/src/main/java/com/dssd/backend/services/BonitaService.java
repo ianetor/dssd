@@ -20,14 +20,17 @@ import java.util.*;
 @Service
 public class BonitaService {
 
-    @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}")
     private String bonitaUrl;
 
-    @Value("${bonita.username:${BONITA_USERNAME:install}}")
     private String username;
 
-    @Value("${bonita.password:${BONITA_PASSWORD:install}}")
     private String password;
+
+    @Value("${BONITA_PROCESS_NAME:RescueSync}")
+    private String processName;
+
+    @Value("${BONITA_PROCESS_VERSION:1.0}")
+    private String processVersion;
 
     private final RestClient restClient;
 
@@ -67,11 +70,12 @@ public class BonitaService {
 
         List<String> cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
         String apiToken = "";
+        String sessionCookie = null;
 
         if (cookies != null) {
             for (String cookie : cookies) {
                 if (cookie.contains("JSESSIONID=")) {
-                    jsessionId = cookie.split(";")[0];
+                    sessionCookie = cookie.split(";")[0];
                 }
                 if (cookie.contains("X-Bonita-API-Token=")) {
                     apiToken = cookie.split(";")[0].replace("X-Bonita-API-Token=", "");
@@ -80,7 +84,11 @@ public class BonitaService {
         }
 
         HttpHeaders reqHeaders = new HttpHeaders();
-        reqHeaders.add(HttpHeaders.COOKIE, jsessionId + "; X-Bonita-API-Token=" + apiToken);
+        if (sessionCookie == null || apiToken.isEmpty()) {
+            throw new IllegalStateException("Bonita no devolvió las credenciales de sesión");
+        }
+        jsessionId = sessionCookie;
+        reqHeaders.add(HttpHeaders.COOKIE, sessionCookie + "; X-Bonita-API-Token=" + apiToken);
         reqHeaders.add("X-Bonita-API-Token", apiToken);
         reqHeaders.setContentType(MediaType.APPLICATION_JSON);
 
@@ -123,10 +131,9 @@ public class BonitaService {
     public Long iniciarInstanciaEmergencia(EmergenciaRequestDTO dto, Long emergenciaId) {
         HttpHeaders headers = login();
 
-        String processId = getProcessDefinitionId("RescueSync", "1.0", headers);
-        System.out.println(processId);
+        String processId = getProcessDefinitionId(processName, processVersion, headers);
         if (processId == null) {
-            throw new RuntimeException("No se encontró el proceso 'Proceso1' desplegado en Bonita");
+            throw new RuntimeException("No se encontró el proceso configurado en Bonita");
         }
 
         String caseUrl = bonitaUrl + "/API/bpm/process/" + processId + "/instantiation";
@@ -156,7 +163,7 @@ public class BonitaService {
             throw new RuntimeException("La respuesta de Bonita no incluyó el 'caseId'");
 
         } catch (Exception e) {
-            throw new RuntimeException("Error al instanciar el proceso 'RescueSync' en Bonita: " + e.getMessage(), e);
+            throw new RuntimeException("Error al instanciar el proceso '" + processName + "' versión " + processVersion + " en Bonita", e);
         }
     }
 
@@ -260,7 +267,8 @@ public class BonitaService {
         return encontrada;
     }
 
-    public void confirmarPublicacion(Long caseId, Long taskId) {
+    public void confirmarPublicacion(Long caseId, Long taskId, Long emergenciaId,
+                                     java.time.Instant fechaVencimiento) {
         HttpHeaders headers = login();
         JsonNode tarea;
         try {
@@ -285,13 +293,43 @@ public class BonitaService {
         }
         if ("completed".equals(tarea.path("state").asText())) return;
         if (!"ready".equals(tarea.path("state").asText())) throw new IllegalStateException("Tarea de publicación no ejecutable");
+        // Consultar la definición y el contrato de ESTA tarea, no los de casos nuevos.
+        String processId = tarea.path("processId").asText();
+        if (processId.isBlank()) throw new IllegalStateException("Bonita no indicó la definición de la tarea");
+        JsonNode proceso = leerPublicacion("/API/bpm/process/" + processId, headers);
+        if (!processName.equals(proceso.path("name").asText())) {
+            throw new IllegalStateException("La tarea pertenece a otro proceso");
+        }
+        JsonNode inputs = leerPublicacion("/API/bpm/userTask/" + taskId + "/contract", headers).path("inputs");
+        if (!inputs.isArray()) {
+            throw new IllegalStateException("Bonita no indicó los inputs del contrato de publicación");
+        }
+        Set<String> nombresInputs = new HashSet<>();
+        boolean inputsTextSimples = true;
+        for (JsonNode input : inputs) {
+            nombresInputs.add(input.path("name").asText());
+            inputsTextSimples &= "TEXT".equals(input.path("type").asText())
+                    && input.has("multiple") && !input.path("multiple").asBoolean();
+        }
+        Map<String, Object> contrato;
+        if (inputs.size() == 2 && inputsTextSimples
+                && nombresInputs.equals(Set.of("emergenciaIdInput", "fechaVencimientoEpochMillisInput"))) {
+            if (emergenciaId == null || emergenciaId <= 0 || fechaVencimiento == null) {
+                throw new IllegalStateException("La publicación requiere emergencia y vencimiento persistidos");
+            }
+            // Long solo está disponible en contratos del pool. En tareas usamos TEXT
+            // y las operaciones de Bonita convierten cada cadena a una variable Long.
+            contrato = Map.of("emergenciaIdInput", emergenciaId.toString(),
+                    "fechaVencimientoEpochMillisInput", Long.toString(fechaVencimiento.toEpochMilli()));
+        } else {
+            throw new IllegalStateException("Contrato de publicación incompatible: se requieren emergenciaIdInput y fechaVencimientoEpochMillisInput de tipo TEXT, no múltiples");
+        }
         String userId = getUserId(headers);
         if (userId == null) throw new IllegalStateException("No se pudo identificar el usuario de Bonita");
         restTemplate.put(bonitaUrl + "/API/bpm/humanTask/" + taskId,
                 new HttpEntity<>(Map.of("assigned_id", userId), headers));
-        // Etapa 1: contrato vacío existente. La fecha se enviará en la etapa 2.
         restTemplate.postForEntity(bonitaUrl + "/API/bpm/userTask/" + taskId + "/execution?assign=true&user=" + userId,
-                new HttpEntity<>(Map.of(), headers), String.class);
+                new HttpEntity<>(contrato, headers), String.class);
     }
 
     private JsonNode leerPublicacion(String path, HttpHeaders headers) {
