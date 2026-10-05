@@ -314,10 +314,19 @@
             <strong class="text-[#0b192c] font-mono">{{ duracionCantidad }} {{ duracionUnidad }}</strong>
           </div>
           <p *ngIf="emergencia.fechaAperturaConvocatoria">Inicio registrado: {{ emergencia.fechaAperturaConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
+          <app-convocatoria-timer [emergencia]="emergencia" />
           <p *ngIf="emergencia.fechaVencimientoConvocatoria">Vencimiento registrado: {{ emergencia.fechaVencimientoConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
           <p *ngIf="convocatoriaCerrada" class="font-semibold text-slate-700">
-            Convocatoria cerrada por vencimiento del plazo. Las ofertas quedan disponibles para consulta.
+            {{ emergencia.motivoCierre === 'COBERTURA_COMPLETA' ? 'Convocatoria cerrada: todos los lotes están cubiertos.' : (emergencia.motivoCierre === 'TIEMPO_AGOTADO' ? 'Convocatoria cerrada por vencimiento del plazo.' : 'Convocatoria cerrada.') }}
+            Las ofertas quedan disponibles para consulta.
           </p>
+          <p *ngIf="emergencia.avanceCoberturaEstado === 'PENDIENTE'" class="text-amber-800">
+            Cobertura completa. Preparando la adjudicación.
+          </p>
+          <p *ngIf="emergencia.avanceCoberturaEstado === 'CONFIRMADO'" class="text-emerald-800">
+            Avance hacia Adjudicar Ofertas confirmado.
+          </p>
+          <p *ngIf="emergencia.avanceCoberturaError" class="text-amber-800">{{ emergencia.avanceCoberturaError }}</p>
           <p *ngIf="emergencia.fechaCierreConvocatoria">Cierre: {{ emergencia.fechaCierreConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
         </div>
 

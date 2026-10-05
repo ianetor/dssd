@@ -146,6 +146,8 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
                 .horaServidor(Instant.now())
                 .publicacionIntentos(emergencia.getPublicacionIntentos())
                 .publicacionError(emergencia.getPublicacionError())
+                .avanceCoberturaEstado(emergencia.getAvanceCoberturaEstado())
+                .avanceCoberturaError(emergencia.getAvanceCoberturaError())
                 .municipioNombre(emergencia.getMunicipioNombre());
 
         emergencia.popularCamposEspecificos(builder);

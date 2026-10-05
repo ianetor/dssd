@@ -19,10 +19,13 @@ import java.util.List;
 public class EmergenciaController {
 
     private final EmergenciaService emergenciaService;
+    private final com.dssd.backend.services.CoberturaConvocatoriaService cobertura;
 
 
-    public EmergenciaController(EmergenciaService emergenciaService, BonitaService bonitaService) {
+    public EmergenciaController(EmergenciaService emergenciaService, BonitaService bonitaService,
+                               com.dssd.backend.services.CoberturaConvocatoriaService cobertura) {
         this.emergenciaService = emergenciaService;
+        this.cobertura = cobertura;
     }
 
     @PostMapping
@@ -58,5 +61,10 @@ public class EmergenciaController {
     @GetMapping("/{id}/lotes")
     public ResponseEntity<List<LoteResponseDTO>> obtenerLotesDeEmergencia(@PathVariable Long id) {
         return ResponseEntity.ok(emergenciaService.obtenerLotesDeEmergencia(id));
+    }
+
+    @GetMapping("/{id}/cobertura")
+    public com.dssd.backend.dtos.CoberturaConvocatoriaDTO obtenerCobertura(@PathVariable Long id) {
+        return cobertura.consultar(id);
     }
 }

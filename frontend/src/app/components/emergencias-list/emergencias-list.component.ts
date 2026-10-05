@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   EventEmitter,
   inject,
   Input,
@@ -15,7 +16,9 @@ import { EmergenciaService } from '../../services/emergencia.service';
 import { AuthService } from '../../services/auth.service';
 import { OfertaService } from '../../services/oferta.service';
 import { TextoCodigoPipe } from '../../pipes/texto-codigo.pipe';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, timer } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RelojConvocatoriaService } from '../../services/reloj-convocatoria.service';
 
 @Component({
   selector: 'app-emergencias-list',
@@ -29,6 +32,8 @@ export class EmergenciasListComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly ofertaService = inject(OfertaService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly reloj = inject(RelojConvocatoriaService);
 
   // Inputs para comportamiento compartido
   @Input() soloConvocatoriaAbierta?: boolean;
@@ -50,6 +55,7 @@ export class EmergenciasListComponent implements OnInit {
   // Filtro activo para Coordinadores / Auditores
   filtroEstadoSeleccionado = 'TODAS';
   private participaciones = new Set<number>();
+  private cargando = false;
 
   get filtrosEstado(): { valor: string; etiqueta: string }[] {
     if (this.esRepresentanteOng) {
@@ -95,10 +101,17 @@ export class EmergenciasListComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarEmergencias();
+    timer(5000, 5000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (!this.cargando && this.emergencias.some(e => e.estado === 'CONVOCATORIA_ABIERTA' || e.avanceCoberturaEstado === 'PENDIENTE')) {
+        this.cargarEmergencias(true);
+      }
+    });
   }
 
-  cargarEmergencias(): void {
-    this.loading = true;
+  cargarEmergencias(enSegundoPlano = false): void {
+    if (this.cargando) return;
+    this.cargando = true;
+    this.loading = !enSegundoPlano;
     this.error = '';
     if (this.esRepresentanteOng && !this.filtrosEstado.some(f => f.valor === this.filtroEstadoSeleccionado)) {
       this.filtroEstadoSeleccionado = 'CONVOCATORIA_ABIERTA';
@@ -109,8 +122,9 @@ export class EmergenciasListComponent implements OnInit {
     forkJoin({
       emergencias: this.emergenciaService.listar(parametroEstado),
       ofertas: this.esRepresentanteOng ? this.ofertaService.listar() : of([]),
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ emergencias: data, ofertas }) => {
+        data.forEach(e => this.reloj.sincronizar(e.horaServidor));
         this.participaciones = new Set(ofertas.flatMap(o => o.emergenciaId == null ? [] : [o.emergenciaId]));
         if (this.esRepresentanteOng) {
           this.emergencias = data.filter(e => ['CONVOCATORIA_ABIERTA', 'CONVOCATORIA_CERRADA'].includes(e.estado));
@@ -122,12 +136,14 @@ export class EmergenciasListComponent implements OnInit {
 
         this.aplicarFiltroTab();
         this.loading = false;
+        this.cargando = false;
         this.emergenciasCargadas.emit(this.emergencias);
         this.changeDetector.detectChanges();
       },
       error: () => {
         this.error = 'No se pudieron sincronizar las emergencias en tiempo real.';
         this.loading = false;
+        this.cargando = false;
         this.changeDetector.detectChanges();
       },
     });
@@ -162,6 +178,10 @@ export class EmergenciasListComponent implements OnInit {
 
   esConvocatoriaAbierta(emg: Emergencia): boolean {
     return emg.estado === 'CONVOCATORIA_ABIERTA';
+  }
+
+  identificarEmergencia(_: number, emg: Emergencia): number | Emergencia {
+    return emg.id ?? emg;
   }
 
   obtenerIconoTipo(tipo: string): string {

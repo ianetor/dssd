@@ -20,6 +20,7 @@ public class OfertaService {
     private final LoteNecesidadRepository lotes;
     private final DetalleOfertaRepository detalles;
     private final EmergenciaRepository emergencias;
+    private final CoberturaConvocatoriaService cobertura;
     private String ong(UsuarioResponseDTO usuario) {
         // Bonita autentica al representante. No se mantiene un padrón local de usuarios.
         String username = usuario.getUsername();
@@ -155,6 +156,7 @@ public class OfertaService {
         long cubierta = detalles.cantidadOfertada(lote.getId());
         lote.setCantidadCubierta((int) Math.min(cubierta, lote.getCantidadRequerida()));
         lotes.save(lote);
+        cobertura.cerrarSiCompleta(lote.getEmergencia().getId());
     }
 
     private OfertaResponseDTO respuesta(OfertaAyuda o) {

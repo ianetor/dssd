@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { retry, timeout } from 'rxjs/operators';
+import { retry, tap, timeout } from 'rxjs/operators';
+import { RelojConvocatoriaService } from './reloj-convocatoria.service';
 import { environment } from '../../enviroments/environment';
 import { Emergencia, EmergenciaPayload, LotePayload } from '../models/emergencia.model';
 
@@ -10,25 +11,28 @@ import { Emergencia, EmergenciaPayload, LotePayload } from '../models/emergencia
 })
 export class EmergenciaService {
   private readonly http = inject(HttpClient);
+  private readonly reloj = inject(RelojConvocatoriaService);
   private readonly apiUrl = `${environment.apiUrl}/emergencias`;
 
   listar(estado?: string): Observable<Emergencia[]> {
     const url = estado ? `${this.apiUrl}?estado=${encodeURIComponent(estado)}` : this.apiUrl;
     return this.http.get<Emergencia[]>(url).pipe(
       timeout({ first: 5000 }),
-      retry({ count: 2, delay: 1000 })
+      retry({ count: 2, delay: 1000 }),
+      tap(emergencias => emergencias.forEach(e => this.reloj.sincronizar(e.horaServidor))),
     );
   }
 
   obtenerPorId(id: number): Observable<Emergencia> {
-    return this.http.get<Emergencia>(`${this.apiUrl}/${id}`);
+    return this.http.get<Emergencia>(`${this.apiUrl}/${id}`).pipe(tap(e => this.reloj.sincronizar(e.horaServidor)));
   }
 
   crear(payload: EmergenciaPayload): Observable<Emergencia> {
-    return this.http.post<Emergencia>(this.apiUrl, payload);
+    return this.http.post<Emergencia>(this.apiUrl, payload).pipe(tap(e => this.reloj.sincronizar(e.horaServidor)));
   }
 
   publicarLotes(id: number, lotes: LotePayload[], duracionMinutos: number): Observable<Emergencia> {
-    return this.http.post<Emergencia>(`${this.apiUrl}/${id}/lotes`, { lotes, duracionMinutos });
+    return this.http.post<Emergencia>(`${this.apiUrl}/${id}/lotes`, { lotes, duracionMinutos })
+      .pipe(tap(e => this.reloj.sincronizar(e.horaServidor)));
   }
 }

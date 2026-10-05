@@ -64,6 +64,13 @@ public abstract class Emergencia {
     private java.time.Instant publicacionProximoIntento;
     private String publicacionError;
 
+    // Avance durable tras cierre por cobertura; se confirma al observar Adjudicar Ofertas.
+    private String avanceCoberturaEstado;
+    private Long avanceCoberturaTaskId;
+    private Integer avanceCoberturaIntentos;
+    private java.time.Instant avanceCoberturaProximoIntento;
+    private String avanceCoberturaError;
+
     @OneToMany(mappedBy = "emergencia", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
     private List<LoteNecesidad> lotes = new ArrayList<>();
 

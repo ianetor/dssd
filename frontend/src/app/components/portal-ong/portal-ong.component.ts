@@ -8,6 +8,9 @@ import { OfertaService } from '../../services/oferta.service';
 import { OfertaLocal } from '../../models/oferta.model';
 import { EmergenciaService } from '../../services/emergencia.service';
 import { Emergencia } from '../../models/emergencia.model';
+import { ConvocatoriaTimerComponent } from '../convocatoria-timer/convocatoria-timer.component';
+import { RelojConvocatoriaService } from '../../services/reloj-convocatoria.service';
+import { TextoCodigoPipe } from '../../pipes/texto-codigo.pipe';
 
 export interface LoteDisponible {
   id: string;
@@ -25,7 +28,7 @@ export interface LoteDisponible {
 
 @Component({
   selector: 'app-portal-ong', standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, ConvocatoriaTimerComponent, TextoCodigoPipe],
   templateUrl: './portal-ong.component.html', styleUrls: ['./portal-ong.component.scss'],
 })
 export class PortalOngComponent implements OnInit {
@@ -35,6 +38,7 @@ export class PortalOngComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly cd = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly reloj = inject(RelojConvocatoriaService);
   private carga?: Subscription;
   private seguimiento?: Subscription;
 
@@ -70,7 +74,20 @@ export class PortalOngComponent implements OnInit {
   get puedeOfertar(): boolean {
     return !this.loadingEmergencia && !this.guardando && !!this.loteSeleccionado
       && !this.loteEstaCompleto(this.loteSeleccionado)
-      && this.emergenciaSeleccionada?.estado === 'CONVOCATORIA_ABIERTA';
+      && this.recepcionHabilitada;
+  }
+  get recepcionHabilitada(): boolean {
+    const segundos = this.reloj.segundosRestantes(this.emergenciaSeleccionada);
+    return this.emergenciaSeleccionada?.estado === 'CONVOCATORIA_ABIERTA'
+      && segundos != null && segundos > 0;
+  }
+  get plazoAgotado(): boolean {
+    return this.emergenciaSeleccionada?.estado === 'CONVOCATORIA_ABIERTA'
+      && this.reloj.segundosRestantes(this.emergenciaSeleccionada) === 0;
+  }
+  alVencerPlazo(): void {
+    this.cancelarEdicion();
+    this.cerrarConfirmacion();
   }
   get convocatoriaCerrada(): boolean {
     return this.emergenciaSeleccionada?.estado === 'CONVOCATORIA_CERRADA';
@@ -98,6 +115,7 @@ export class PortalOngComponent implements OnInit {
       emergencia: this.emergenciaService.obtenerPorId(id), ofertas: this.ofertaService.listar(id),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ emergencia, ofertas }) => {
+        this.reloj.sincronizar(emergencia.horaServidor);
         this.emergenciaSeleccionada = emergencia;
         this.ofertas = ofertas;
         this.lotesDisponibles = (emergencia.lotes ?? []).map(lote => {
@@ -131,7 +149,8 @@ export class PortalOngComponent implements OnInit {
   }
 
   private seguirEstado(id: number): void {
-    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA') return;
+    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA'
+      && this.emergenciaSeleccionada?.avanceCoberturaEstado !== 'PENDIENTE') return;
     this.seguimiento = timer(5000, 5000).pipe(
       exhaustMap(() => this.guardando ? EMPTY : this.emergenciaService.obtenerPorId(id).pipe(
         timeout(10000),
@@ -143,11 +162,12 @@ export class PortalOngComponent implements OnInit {
       )),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(emergencia => {
+      this.reloj.sincronizar(emergencia.horaServidor);
       this.emergenciaSeleccionada = emergencia;
       if (emergencia.estado !== 'CONVOCATORIA_ABIERTA') {
         this.cancelarEdicion();
         this.cerrarConfirmacion();
-        this.seguimiento?.unsubscribe();
+        if (emergencia.avanceCoberturaEstado !== 'PENDIENTE') this.seguimiento?.unsubscribe();
       }
       this.cd.detectChanges();
     });
@@ -180,7 +200,7 @@ export class PortalOngComponent implements OnInit {
 
 
   seleccionarLoteCard(lote: LoteDisponible): void {
-    if (this.editandoId || this.guardando || this.loteEstaCompleto(lote)) return;
+    if (!this.recepcionHabilitada || this.editandoId || this.guardando || this.loteEstaCompleto(lote)) return;
     this.form.patchValue({ loteId: String(lote.loteId) });
     this.unidadActual = lote.unidad;
   }
@@ -237,7 +257,7 @@ export class PortalOngComponent implements OnInit {
   }
 
   iniciarEdicion(oferta: OfertaLocal): void {
-    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA' || this.guardando || oferta.estado === 'Retirada') return;
+    if (!this.recepcionHabilitada || this.guardando || oferta.estado === 'Retirada') return;
     this.editandoId = oferta.id;
     this.form.patchValue({ loteId: String(oferta.loteId), cantidadOfrecida: oferta.cantidadOfrecida,
       tiempoLlegada: oferta.tiempoLlegada, observaciones: oferta.observaciones || '' });
@@ -252,7 +272,7 @@ export class PortalOngComponent implements OnInit {
       tiempoLlegada: '2 horas tras adjudicación', observaciones: '' });
   }
   eliminarOferta(id: string): void {
-    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA' || this.guardando) return;
+    if (!this.recepcionHabilitada || this.guardando) return;
     this.ofertaPendienteDeEliminar = id;
     this.mostrarConfirmacion = true;
   }
@@ -263,7 +283,7 @@ export class PortalOngComponent implements OnInit {
   confirmarEliminacion(): void {
     const id = this.ofertaPendienteDeEliminar;
     const emergenciaId = this.emergenciaSeleccionada?.id;
-    if (this.emergenciaSeleccionada?.estado !== 'CONVOCATORIA_ABIERTA' || !id || !emergenciaId || this.guardando) return;
+    if (!this.recepcionHabilitada || !id || !emergenciaId || this.guardando) return;
     this.guardando = true;
     this.error = '';
     this.feedbackMensaje = '';

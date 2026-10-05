@@ -6,6 +6,8 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { EmergenciaService } from '../../services/emergencia.service';
 import { Emergencia, LotePayload } from '../../models/emergencia.model';
+import { ConvocatoriaTimerComponent } from '../convocatoria-timer/convocatoria-timer.component';
+import { RelojConvocatoriaService } from '../../services/reloj-convocatoria.service';
 
 interface LoteItem {
   nombre: string;
@@ -18,7 +20,7 @@ interface LoteItem {
 @Component({
   selector: 'app-emergencia-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, ConvocatoriaTimerComponent],
   templateUrl: './emergencia-detail.component.html',
   styleUrls: ['./emergencia-detail.component.scss'],
 })
@@ -28,6 +30,7 @@ export class EmergenciaDetailComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly cd = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly reloj = inject(RelojConvocatoriaService);
   private seguimiento?: Subscription;
 
   emergencia?: Emergencia;
@@ -58,7 +61,8 @@ export class EmergenciaDetailComponent implements OnInit {
   get publicacionPendiente(): boolean { return this.emergencia?.estado === 'PUBLICACION_PENDIENTE'; }
   get convocatoriaCerrada(): boolean { return this.emergencia?.estado === 'CONVOCATORIA_CERRADA'; }
   private get requiereSeguimiento(): boolean {
-    return this.publicacionPendiente || (this.emergencia?.estado === 'CONVOCATORIA_ABIERTA'
+    return this.publicacionPendiente || this.emergencia?.avanceCoberturaEstado === 'PENDIENTE'
+      || (this.emergencia?.estado === 'CONVOCATORIA_ABIERTA'
       && !!this.emergencia.fechaVencimientoConvocatoria);
   }
   get edicionBloqueada(): boolean {
@@ -66,6 +70,7 @@ export class EmergenciaDetailComponent implements OnInit {
   }
 
   private recibirEmergencia(emergencia: Emergencia): void {
+    this.reloj.sincronizar(emergencia.horaServidor);
     this.emergencia = emergencia;
     this.publicadoExitoso = emergencia.estado === 'CONVOCATORIA_ABIERTA';
     if (emergencia.duracionConvocatoriaMinutos != null) {

@@ -32,6 +32,8 @@ public class EmergenciaResponseDTO {
     private java.time.Instant horaServidor;
     private Integer publicacionIntentos;
     private String publicacionError;
+    private String avanceCoberturaEstado;
+    private String avanceCoberturaError;
 
     private String municipioNombre;
 

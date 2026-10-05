@@ -20,6 +20,8 @@ export interface Emergencia {
   horaServidor?: string;
   publicacionIntentos?: number | null;
   publicacionError?: string | null;
+  avanceCoberturaEstado?: 'PENDIENTE' | 'CONFIRMADO' | null;
+  avanceCoberturaError?: string | null;
   municipioId?: number | null;
   municipioNombre?: string;
   hectareasAfectadas?: number | null;

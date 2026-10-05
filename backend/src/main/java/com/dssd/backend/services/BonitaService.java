@@ -332,6 +332,64 @@ public class BonitaService {
                 new HttpEntity<>(contrato, headers), String.class);
     }
 
+    private static final String TAREA_OFERTAS = "Realizar Ofertas";
+    private static final String TAREA_ADJUDICAR = "Adjudicar Ofertas";
+    private static final String TAREA_INSUFICIENTE = "Evaluar cobertura insuficiente";
+
+    private java.util.List<JsonNode> tareasActivasCobertura(Long caseId, HttpHeaders headers) {
+        if (caseId == null) throw new IllegalStateException("La emergencia no tiene caso de Bonita asociado");
+        java.util.List<JsonNode> tareas = new ArrayList<>();
+        for (int pagina = 0; ; pagina++) {
+            JsonNode lote = leerPublicacion("/API/bpm/humanTask?p=" + pagina
+                    + "&c=100&f=caseId=" + caseId + "&f=state=ready", headers);
+            if (!lote.isArray()) throw new IllegalStateException("Lista de tareas de Bonita inválida");
+            for (JsonNode tarea : lote) {
+                if (tarea.path("parentCaseId").asLong() != caseId) {
+                    throw new IllegalStateException("Bonita devolvió una tarea de otro caso");
+                }
+                tareas.add(tarea);
+            }
+            if (lote.size() < 100) return tareas;
+        }
+    }
+
+    public boolean adjudicacionDisponible(Long caseId) {
+        var tareas = tareasActivasCobertura(caseId, login());
+        if (tareas.stream().anyMatch(t -> TAREA_INSUFICIENTE.equals(t.path("name").asText()))) {
+            throw new IllegalStateException("El caso llegó a Evaluar cobertura insuficiente pese a tener cobertura completa. Revisá la consulta de cobertura y la condición de Bonita.");
+        }
+        return tareas.stream().anyMatch(t -> TAREA_ADJUDICAR.equals(t.path("name").asText()));
+    }
+
+    public Long buscarTareaOfertas(Long caseId) {
+        var tareas = tareasActivasCobertura(caseId, login()).stream()
+                .filter(t -> TAREA_OFERTAS.equals(t.path("name").asText())).toList();
+        if (tareas.size() != 1) throw new IllegalStateException("Esperando la tarea Realizar Ofertas o la adjudicación en Bonita");
+        return tareas.get(0).path("id").asLong();
+    }
+
+    public void completarRecepcionPorCobertura(Long caseId, Long taskId) {
+        HttpHeaders headers = login();
+        JsonNode tarea = leerPublicacion("/API/bpm/humanTask/" + taskId, headers);
+        if (tarea.path("parentCaseId").asLong() != caseId
+                || !TAREA_OFERTAS.equals(tarea.path("name").asText())
+                || !"ready".equals(tarea.path("state").asText())) {
+            throw new IllegalStateException("Solo se puede completar Realizar Ofertas del caso cerrado por cobertura");
+        }
+        JsonNode proceso = leerPublicacion("/API/bpm/process/" + tarea.path("processId").asText(), headers);
+        if (!processName.equals(proceso.path("name").asText())) throw new IllegalStateException("La tarea pertenece a otro proceso");
+        JsonNode contrato = leerPublicacion("/API/bpm/userTask/" + taskId + "/contract", headers);
+        if (!contrato.path("inputs").isArray() || !contrato.path("inputs").isEmpty()) {
+            throw new IllegalStateException("Realizar Ofertas debe conservar un contrato sin entradas para el avance por cobertura");
+        }
+        String userId = getUserId(headers);
+        if (userId == null) throw new IllegalStateException("No se pudo identificar el usuario de Bonita");
+        restTemplate.put(bonitaUrl + "/API/bpm/humanTask/" + taskId,
+                new HttpEntity<>(Map.of("assigned_id", userId), headers));
+        restTemplate.postForEntity(bonitaUrl + "/API/bpm/userTask/" + taskId + "/execution?assign=true&user=" + userId,
+                new HttpEntity<>(Map.of(), headers), String.class);
+    }
+
     private JsonNode leerPublicacion(String path, HttpHeaders headers) {
         String body = restTemplate.exchange(bonitaUrl + path, HttpMethod.GET,
                 new HttpEntity<>(headers), String.class).getBody();
