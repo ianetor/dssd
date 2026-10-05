@@ -354,11 +354,25 @@ public class BonitaService {
     }
 
     public boolean adjudicacionDisponible(Long caseId) {
-        var tareas = tareasActivasCobertura(caseId, login());
+        HttpHeaders headers = login();
+        var tareas = tareasActivasCobertura(caseId, headers);
         if (tareas.stream().anyMatch(t -> TAREA_INSUFICIENTE.equals(t.path("name").asText()))) {
             throw new IllegalStateException("El caso llegó a Evaluar cobertura insuficiente pese a tener cobertura completa. Revisá la consulta de cobertura y la condición de Bonita.");
         }
-        return tareas.stream().anyMatch(t -> TAREA_ADJUDICAR.equals(t.path("name").asText()));
+        if (tareas.stream().anyMatch(t -> TAREA_ADJUDICAR.equals(t.path("name").asText()))) return true;
+        // El usuario pudo adjudicar antes del reintento tras una respuesta perdida.
+        // Los filtros documentados del historial son name/state; validar el caso localmente.
+        for (int pagina = 0; ; pagina++) {
+            JsonNode archivadas = leerPublicacion("/API/bpm/archivedHumanTask?p=" + pagina
+                    + "&c=100&f=state=completed&f=name=" + TAREA_ADJUDICAR, headers);
+            if (!archivadas.isArray()) throw new IllegalStateException("Historial de tareas de Bonita inválido");
+            for (JsonNode tarea : archivadas) {
+                if (tarea.path("parentCaseId").asLong() == caseId
+                        && TAREA_ADJUDICAR.equals(tarea.path("name").asText())
+                        && "completed".equals(tarea.path("state").asText())) return true;
+            }
+            if (archivadas.size() < 100) return false;
+        }
     }
 
     public Long buscarTareaOfertas(Long caseId) {

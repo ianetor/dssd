@@ -76,6 +76,11 @@ export class PortalOngComponent implements OnInit {
       && !this.loteEstaCompleto(this.loteSeleccionado)
       && this.recepcionHabilitada;
   }
+  get avisoCantidad(): string {
+    return this.recepcionHabilitada && this.loteSeleccionado
+      && Number(this.form.controls.cantidadOfrecida.value) > this.cantidadMaxima
+      ? `La cobertura se actualizó. Podés ofrecer hasta ${this.cantidadMaxima} ${this.unidadActual}; revisá la cantidad ingresada.` : '';
+  }
   get recepcionHabilitada(): boolean {
     const segundos = this.reloj.segundosRestantes(this.emergenciaSeleccionada);
     return this.emergenciaSeleccionada?.estado === 'CONVOCATORIA_ABIERTA'
@@ -118,23 +123,7 @@ export class PortalOngComponent implements OnInit {
         this.reloj.sincronizar(emergencia.horaServidor);
         this.emergenciaSeleccionada = emergencia;
         this.ofertas = ofertas;
-        this.lotesDisponibles = (emergencia.lotes ?? []).map(lote => {
-          const requerida = Number(lote.cantidadRequerida);
-          const cubierta = Number(lote.cantidadCubierta);
-          const unidad = this.inferirUnidad(lote.tipoRecurso);
-          return {
-            id: `lote-${lote.id}`, loteId: lote.id, nombre: lote.tipoRecurso,
-            descripcion: `Lote solicitado para ${emergencia.tipoEmergencia}.`,
-            demanda: `${requerida} ${unidad}`, cantidadRequerida: requerida,
-            cantidadCubierta: cubierta, cantidadFaltante: Math.max(0, requerida - cubierta),
-            porcentajeCubierto: requerida > 0 ? Math.min(100, Math.round(cubierta / requerida * 100)) : 0,
-            unidad, icono: this.inferirIcono(lote.tipoRecurso),
-          };
-        });
-        if (!this.loteSeleccionado || this.loteEstaCompleto(this.loteSeleccionado)) {
-          const loteDisponible = this.lotesDisponibles.find(lote => !this.loteEstaCompleto(lote));
-          this.form.patchValue({ loteId: String(loteDisponible?.loteId ?? '') });
-        }
+        this.actualizarLotes(emergencia);
         this.loadingEmergencia = false;
         this.seguirEstado(id);
         this.cd.detectChanges();
@@ -146,6 +135,28 @@ export class PortalOngComponent implements OnInit {
         this.cd.detectChanges();
       },
     });
+  }
+
+  private actualizarLotes(emergencia: Emergencia): void {
+    this.lotesDisponibles = (emergencia.lotes ?? []).map(lote => {
+      const requerida = Number(lote.cantidadRequerida);
+      const cubierta = Number(lote.cantidadCubierta);
+      const unidad = this.inferirUnidad(lote.tipoRecurso);
+      return {
+        id: `lote-${lote.id}`, loteId: lote.id, nombre: lote.tipoRecurso,
+        descripcion: `Lote solicitado para ${emergencia.tipoEmergencia}.`,
+        demanda: `${requerida} ${unidad}`, cantidadRequerida: requerida,
+        cantidadCubierta: cubierta, cantidadFaltante: Math.max(0, requerida - cubierta),
+        porcentajeCubierto: requerida > 0 ? Math.min(100, Math.round(cubierta / requerida * 100)) : 0,
+        unidad, icono: this.inferirIcono(lote.tipoRecurso),
+      };
+    });
+    // Una rectificación conserva su lote y el borrador; su máximo incluye el aporte propio.
+    if (!this.editandoId && (!this.loteSeleccionado || this.loteEstaCompleto(this.loteSeleccionado))) {
+      const disponible = this.lotesDisponibles.find(lote => !this.loteEstaCompleto(lote));
+      this.form.patchValue({ loteId: String(disponible?.loteId ?? '') });
+    }
+    this.unidadActual = this.loteSeleccionado?.unidad ?? 'unidades';
   }
 
   private seguirEstado(id: number): void {
@@ -164,6 +175,7 @@ export class PortalOngComponent implements OnInit {
     ).subscribe(emergencia => {
       this.reloj.sincronizar(emergencia.horaServidor);
       this.emergenciaSeleccionada = emergencia;
+      this.actualizarLotes(emergencia);
       if (emergencia.estado !== 'CONVOCATORIA_ABIERTA') {
         this.cancelarEdicion();
         this.cerrarConfirmacion();
