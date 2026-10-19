@@ -11,7 +11,6 @@ import org.springframework.test.annotation.Rollback;
 import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
-@Rollback(value = false)
 public class DomainPersistenceTest {   
     
     @Autowired private EmergenciaRepository emergenciaRepo;
@@ -96,6 +95,8 @@ public class DomainPersistenceTest {
         // Arrange
         Incendio incendio = new Incendio();
         incendio.setDescripcion("Fuego pastizales");
+        incendio.setZonaAfectada("Zona Cordoba");
+        incendio.setNivelGravedad("ALTO");
         incendio.setMunicipioNombre("municipio_cordoba");
         incendio.setEstado("CONVOCATORIA_ABIERTA");
         emergenciaRepo.save(incendio);

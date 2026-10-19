@@ -38,6 +38,14 @@ public class OfertaService {
                 .map(this::respuesta).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<OfertaResponseDTO> listarPorEmergencia(Long emergenciaId) {
+        return ofertas.findByEmergenciaId(emergenciaId).stream()
+                .filter(o -> !o.getDetalles().isEmpty())
+                .map(this::respuesta)
+                .toList();
+    }
+
     public OfertaResponseDTO crear(UsuarioResponseDTO usuario, OfertaRequestDTO dto) {
         String ong = ong(usuario);
         bloquearEmergencia(dto.emergenciaId());
@@ -162,6 +170,7 @@ public class OfertaService {
     private OfertaResponseDTO respuesta(OfertaAyuda o) {
         DetalleOferta d = o.getDetalles().get(0);
         return new OfertaResponseDTO(o.getId().toString(), d.getLote().getEmergencia().getId(),
+                d.getLote().getEmergencia().getNivelGravedad(),
                 d.getLote().getId(), d.getLote().getTipoRecurso(), d.getCantidadOfrecida(), o.getUnidad(), o.getTiempoLlegada(),
                 o.getObservaciones(), o.getFechaHora(), o.getEstado(), o.getOngLider());
     }

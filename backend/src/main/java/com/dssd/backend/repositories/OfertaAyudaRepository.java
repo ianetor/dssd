@@ -17,4 +17,12 @@ public interface OfertaAyudaRepository extends JpaRepository<OfertaAyuda, Long> 
             @org.springframework.data.repository.query.Param("ongLider") String ongLider);
 
     java.util.List<OfertaAyuda> findByOngLiderOrderByFechaHoraDesc(String ongLider);
+
+    @org.springframework.data.jpa.repository.Query("""
+            select distinct o from OfertaAyuda o
+            join o.detalles d
+            where d.lote.emergencia.id = :emergenciaId
+            order by o.fechaHora desc
+            """)
+    java.util.List<OfertaAyuda> findByEmergenciaId(@org.springframework.data.repository.query.Param("emergenciaId") Long emergenciaId);
 }

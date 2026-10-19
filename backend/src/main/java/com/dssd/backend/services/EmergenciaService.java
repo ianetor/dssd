@@ -2,6 +2,7 @@ package com.dssd.backend.services;
 
 import com.dssd.backend.dtos.PublicacionConvocatoriaRequestDTO;
 import com.dssd.backend.dtos.LoteResponseDTO;
+import com.dssd.backend.dtos.OfertaResponseDTO;
 import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaRequestDTO;
 import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaResponseDTO;
 import com.dssd.backend.models.*;
@@ -25,14 +26,17 @@ public class EmergenciaService {
     private final EmergenciaRepository emergenciaRepository;
     private final LoteNecesidadRepository loteNecesidadRepository;
     private final BonitaService bonitaService;
+    private final OfertaService ofertaService;
 
     public EmergenciaService(EmergenciaRepository emergenciaRepository,
                              LoteNecesidadRepository loteNecesidadRepository,
-                             BonitaService bonitaService)
+                             BonitaService bonitaService,
+                             OfertaService ofertaService)
     {
         this.emergenciaRepository = emergenciaRepository;
         this.loteNecesidadRepository = loteNecesidadRepository;
         this.bonitaService = bonitaService;
+        this.ofertaService = ofertaService;
     }
 
     @Transactional
@@ -126,6 +130,23 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
         return loteNecesidadRepository.findByEmergenciaId(emergenciaId).stream()
                 .map(this::toLoteResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<OfertaResponseDTO> obtenerOfertasPorCaseId(Long caseId) {
+        Emergencia emergencia = emergenciaRepository.findByCaseId(caseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No se encontró emergencia para el caseId: " + caseId));
+        return ofertaService.listarPorEmergencia(emergencia.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<OfertaResponseDTO> obtenerOfertasPorEmergenciaId(Long id) {
+        if (!emergenciaRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "No se encontró emergencia con ID: " + id);
+        }
+        return ofertaService.listarPorEmergencia(id);
     }
 
 
