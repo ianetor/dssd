@@ -2,6 +2,7 @@ export interface OfertaLocal {
   /** ID de la oferta (viene como string del backend ya que se serializa Long como string) */
   id: string;
   emergenciaId?: number;
+  nivelGravedad?: string;
   /** ID del lote al que aplica la oferta */
   loteId?: number | string;
   /** Nombre / tipo de recurso del lote */

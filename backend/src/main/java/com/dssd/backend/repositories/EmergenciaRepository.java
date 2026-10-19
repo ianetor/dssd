@@ -13,6 +13,7 @@ public interface EmergenciaRepository extends JpaRepository<Emergencia, Long> {
     java.util.Optional<Emergencia> bloquearPorId(@org.springframework.data.repository.query.Param("id") Long id);
 
     List<Emergencia> findByEstado(String estado);
+    java.util.Optional<Emergencia> findByCaseId(Long caseId);
     List<Emergencia> findByAvanceCoberturaEstadoAndAvanceCoberturaProximoIntentoLessThanEqual(
             String estado, java.time.Instant ahora);
 

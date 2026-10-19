@@ -4,6 +4,7 @@ import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaResponseDTO;
 import com.dssd.backend.dtos.EmergenciasDTO.EmergenciaRequestDTO;
 import com.dssd.backend.dtos.LoteRequestDTO;
 import com.dssd.backend.dtos.LoteResponseDTO;
+import com.dssd.backend.dtos.OfertaResponseDTO;
 import com.dssd.backend.services.EmergenciaService;
 
 
@@ -66,5 +67,15 @@ public class EmergenciaController {
     @GetMapping("/{id}/cobertura")
     public com.dssd.backend.dtos.CoberturaConvocatoriaDTO obtenerCobertura(@PathVariable Long id) {
         return cobertura.consultar(id);
+    }
+
+    @GetMapping({"/caso/{caseId}/ofertas", "/case/{caseId}/ofertas"})
+    public ResponseEntity<List<OfertaResponseDTO>> obtenerOfertasPorCaseId(@PathVariable Long caseId) {
+        return ResponseEntity.ok(emergenciaService.obtenerOfertasPorCaseId(caseId));
+    }
+
+    @GetMapping("/{id:\\d+}/ofertas")
+    public ResponseEntity<List<OfertaResponseDTO>> obtenerOfertasPorEmergenciaId(@PathVariable Long id) {
+        return ResponseEntity.ok(emergenciaService.obtenerOfertasPorEmergenciaId(id));
     }
 }
