@@ -268,7 +268,8 @@ public class BonitaService {
     }
 
     public void confirmarPublicacion(Long caseId, Long taskId, Long emergenciaId,
-                                     java.time.Instant fechaVencimiento) {
+                                     java.time.Instant fechaVencimiento,
+                                     List<LoteNecesidad> lotes) {
         HttpHeaders headers = login();
         JsonNode tarea;
         try {
@@ -312,17 +313,20 @@ public class BonitaService {
                     && input.has("multiple") && !input.path("multiple").asBoolean();
         }
         Map<String, Object> contrato;
-        if (inputs.size() == 2 && inputsTextSimples
-                && nombresInputs.equals(Set.of("emergenciaIdInput", "fechaVencimientoEpochMillisInput"))) {
-            if (emergenciaId == null || emergenciaId <= 0 || fechaVencimiento == null) {
-                throw new IllegalStateException("La publicación requiere emergencia y vencimiento persistidos");
+        if (inputs.size() == 3 && inputsTextSimples
+                && nombresInputs.equals(Set.of("emergenciaIdInput", "fechaVencimientoEpochMillisInput", "lotesInput"))) {
+            if (emergenciaId == null || emergenciaId <= 0 || fechaVencimiento == null
+                    || lotes == null || lotes.isEmpty()) {
+                throw new IllegalStateException("La publicación requiere emergencia, vencimiento y lotes persistidos");
             }
             // Long solo está disponible en contratos del pool. En tareas usamos TEXT
             // y las operaciones de Bonita convierten cada cadena a una variable Long.
-            contrato = Map.of("emergenciaIdInput", emergenciaId.toString(),
-                    "fechaVencimientoEpochMillisInput", Long.toString(fechaVencimiento.toEpochMilli()));
+            contrato = Map.of(
+                    "emergenciaIdInput", emergenciaId.toString(),
+                    "fechaVencimientoEpochMillisInput", Long.toString(fechaVencimiento.toEpochMilli()),
+                    "lotesInput", serializarLotes(lotes));
         } else {
-            throw new IllegalStateException("Contrato de publicación incompatible: se requieren emergenciaIdInput y fechaVencimientoEpochMillisInput de tipo TEXT, no múltiples");
+            throw new IllegalStateException("Contrato de publicación incompatible: se requieren emergenciaIdInput, fechaVencimientoEpochMillisInput y lotesInput de tipo TEXT, no múltiples");
         }
         String userId = getUserId(headers);
         if (userId == null) throw new IllegalStateException("No se pudo identificar el usuario de Bonita");
@@ -330,6 +334,20 @@ public class BonitaService {
                 new HttpEntity<>(Map.of("assigned_id", userId), headers));
         restTemplate.postForEntity(bonitaUrl + "/API/bpm/userTask/" + taskId + "/execution?assign=true&user=" + userId,
                 new HttpEntity<>(contrato, headers), String.class);
+    }
+
+    private String serializarLotes(List<LoteNecesidad> lotes) {
+        List<Map<String, Object>> datos = lotes.stream()
+                .map(lote -> Map.<String, Object>of(
+                        "tipoRecurso", lote.getTipoRecurso(),
+                        "cantidadRequerida", lote.getCantidadRequerida(),
+                        "cantidadCubierta", lote.getCantidadCubierta() == null ? 0 : lote.getCantidadCubierta()))
+                .toList();
+        try {
+            return objectMapper.writeValueAsString(datos);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new IllegalStateException("No se pudieron serializar los lotes de la publicación", ex);
+        }
     }
 
     private static final String TAREA_OFERTAS = "Realizar Ofertas";

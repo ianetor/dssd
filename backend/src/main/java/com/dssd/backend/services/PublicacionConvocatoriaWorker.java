@@ -33,7 +33,8 @@ public class PublicacionConvocatoriaWorker {
                 procesar(e.getId());
             } catch (Exception ex) {
                 // No registrar cuerpos HTTP: podrían contener cookies u otros datos sensibles.
-                log.warn("Publicación pendiente emergencia={} caseId={} error={}", e.getId(), e.getCaseId(), ex.getClass().getSimpleName());
+                log.warn("Publicación pendiente emergencia={} caseId={} error={} detalle={}",
+                        e.getId(), e.getCaseId(), ex.getClass().getSimpleName(), ex.getMessage());
             }
         }
     }
@@ -66,7 +67,7 @@ public class PublicacionConvocatoriaWorker {
                 Emergencia e = emergencias.bloquearPorId(id).orElseThrow();
                 if (!pendiente(e)) return;
                 bonita.confirmarPublicacion(e.getCaseId(), e.getPublicacionTaskId(),
-                        e.getId(), e.getFechaVencimientoConvocatoria());
+                        e.getId(), e.getFechaVencimientoConvocatoria(), e.getLotes());
                 e.setEstado("CONVOCATORIA_ABIERTA");
                 e.setPublicacionError(null);
                 e.setPublicacionProximoIntento(null);
