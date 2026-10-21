@@ -58,13 +58,19 @@ public abstract class Emergencia {
     private java.time.Instant fechaCierreConvocatoria;
     private String motivoCierre;
 
+    // Resultado posterior a la validación nacional; independiente del cierre de recepción.
+    @Column(columnDefinition = "text")
+    private String validacionesNacionalesJson;
+    @Column(columnDefinition = "text")
+    private String resultadoCoberturaJson;
+
     // Operación de publicación durable: una por emergencia, recuperable tras reinicios.
     private Long publicacionTaskId;
     private Integer publicacionIntentos;
     private java.time.Instant publicacionProximoIntento;
     private String publicacionError;
 
-    // Avance durable tras cierre por cobertura; se confirma al observar Adjudicar Ofertas.
+    // Avance durable tras cierre por cobertura; se confirma al persistir la validación.
     private String avanceCoberturaEstado;
     private Long avanceCoberturaTaskId;
     private Integer avanceCoberturaIntentos;

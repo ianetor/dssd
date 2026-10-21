@@ -46,12 +46,12 @@ public class AvanceCoberturaWorker {
         try {
             // Ninguna llamada a Bonita se hace con locks de BD retenidos:
             // la evaluación consulta la cobertura en este backend.
-            if (!bonita.adjudicacionDisponible(intento.caseId())) {
+            if (!coberturaValidada(id)) {
                 Long taskId = intento.taskId() != null ? intento.taskId() : bonita.buscarTareaOfertas(intento.caseId());
                 tx.executeWithoutResult(s -> emergencias.bloquearPorId(id).orElseThrow().setAvanceCoberturaTaskId(taskId));
                 bonita.completarRecepcionPorCobertura(intento.caseId(), taskId);
-                if (!bonita.adjudicacionDisponible(intento.caseId())) {
-                    throw new IllegalStateException("Realizar Ofertas finalizó; esperando Adjudicar Ofertas. Si no aparece, revisá la evaluación en Bonita.");
+                if (!coberturaValidada(id)) {
+                    throw new IllegalStateException("Recepción finalizada; esperando Validar cobertura en Bonita.");
                 }
             }
             tx.executeWithoutResult(s -> {
@@ -75,5 +75,10 @@ public class AvanceCoberturaWorker {
     private boolean pendiente(Emergencia e) {
         return "CONVOCATORIA_CERRADA".equals(e.getEstado()) && "COBERTURA_COMPLETA".equals(e.getMotivoCierre())
                 && "PENDIENTE".equals(e.getAvanceCoberturaEstado());
+    }
+
+    private boolean coberturaValidada(Long id) {
+        return Boolean.TRUE.equals(tx.execute(s -> emergencias.findById(id).orElseThrow()
+                .getResultadoCoberturaJson() != null));
     }
 }

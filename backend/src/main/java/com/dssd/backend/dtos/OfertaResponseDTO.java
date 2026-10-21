@@ -6,4 +6,7 @@ public record OfertaResponseDTO(
                 String id, Long emergenciaId, String nivelGravedad, Long loteId, String loteNombre,
                 Integer cantidadOfrecida, String unidad, String tiempoLlegada, String observaciones,
                 Instant fechaHora, String estado, String ongLider) {
+    public String getTipoRecursoNacional() {
+        return com.dssd.backend.services.NombreRecursoNacional.obtener(loteNombre, unidad);
+    }
 }

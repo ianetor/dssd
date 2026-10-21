@@ -321,10 +321,10 @@
             Las ofertas quedan disponibles para consulta.
           </p>
           <p *ngIf="emergencia.avanceCoberturaEstado === 'PENDIENTE'" class="text-amber-800">
-            Cobertura completa. Preparando la adjudicación.
+            Ofertas recibidas para todos los lotes. Esperando la validación de cobertura.
           </p>
           <p *ngIf="emergencia.avanceCoberturaEstado === 'CONFIRMADO'" class="text-emerald-800">
-            Avance hacia Adjudicar Ofertas confirmado.
+            Validación de cobertura confirmada.
           </p>
           <p *ngIf="emergencia.avanceCoberturaError" class="text-amber-800">{{ emergencia.avanceCoberturaError }}</p>
           <p *ngIf="emergencia.fechaCierreConvocatoria">Cierre: {{ emergencia.fechaCierreConvocatoria | date:'dd/MM/yyyy HH:mm:ss' }}</p>
