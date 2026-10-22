@@ -269,7 +269,7 @@ export class PortalOngComponent implements OnInit {
   }
 
   iniciarEdicion(oferta: OfertaLocal): void {
-    if (!this.recepcionHabilitada || this.guardando || oferta.estado === 'Retirada') return;
+    if (!this.recepcionHabilitada || this.guardando || !['Registrada', 'Rectificada', 'Validada'].includes(oferta.estado)) return;
     this.editandoId = oferta.id;
     this.form.patchValue({ loteId: String(oferta.loteId), cantidadOfrecida: oferta.cantidadOfrecida,
       tiempoLlegada: oferta.tiempoLlegada, observaciones: oferta.observaciones || '' });

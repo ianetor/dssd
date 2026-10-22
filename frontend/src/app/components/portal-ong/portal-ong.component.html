@@ -403,7 +403,7 @@
               </span>
             </td>
             <td class="py-3.5 px-4 text-right">
-              <div *ngIf="ofr.estado === 'Registrada' || ofr.estado === 'Rectificada'" class="inline-flex items-center gap-1.5">
+              <div *ngIf="ofr.estado === 'Registrada' || ofr.estado === 'Rectificada' || ofr.estado === 'Validada'" class="inline-flex items-center gap-1.5">
                 <button type="button" [disabled]="!recepcionHabilitada || guardando || loadingEmergencia" (click)="iniciarEdicion(ofr)" title="Rectificar / Editar Oferta dentro del plazo"
                   class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold inline-flex items-center gap-1 transition-all">
                   <span class="material-symbols-outlined text-[14px]">edit</span>

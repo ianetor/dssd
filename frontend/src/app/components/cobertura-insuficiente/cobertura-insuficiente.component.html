@@ -1,0 +1,128 @@
+<section class="revision">
+  <header class="titulo flex justify-between items-center gap-4 flex-wrap">
+    <div><p class="eyebrow"><a routerLink="/">Inicio</a> / Centro Coordinador Regional</p>
+      <h1><span class="material-symbols-outlined" aria-hidden="true">assignment_late</span> Cobertura insuficiente</h1>
+      <p>Revisá los recursos disponibles y definí cómo continuar.</p></div>
+    <a *ngIf="revision()" routerLink="/coordinador/cobertura-insuficiente" class="boton secundario"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span> Volver a pendientes</a>
+  </header>
+  <p *ngIf="cargando()" role="status">Cargando evaluación…</p>
+  <p *ngIf="error()" class="mensaje error" role="alert">{{ error() }}</p>
+  <p *ngIf="errorDecision()" class="mensaje error" role="alert">{{ errorDecision() }}</p>
+  <p *ngIf="aviso()" class="mensaje aviso" role="status">{{ aviso() }}</p>
+
+  <ng-container *ngIf="bandeja() as lista">
+    <div class="cabecera-lista flex justify-between items-center gap-4 flex-wrap"><div class="contador flex items-center gap-3"><span class="material-symbols-outlined" aria-hidden="true">pending_actions</span><strong>{{ lista.totalElementos }}</strong><span>emergencias pendientes</span></div><span class="actualizacion font-mono text-[10px] text-slate-500"><i class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></i> Actualización automática</span></div>
+    <div *ngIf="!lista.contenido.length" class="tarjeta vacio bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6 text-center py-12 px-4"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span><h2>No hay evaluaciones pendientes</h2><p>Las convocatorias que no alcancen la cobertura mínima aparecerán acá.</p></div>
+    <div class="bandeja grid gap-5 content-start">
+      <a *ngFor="let item of lista.contenido" [routerLink]="['/coordinador/cobertura-insuficiente', item.emergenciaId]" class="tarjeta item bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6">
+        <div><span class="eyebrow">Emergencia #{{ item.emergenciaId }} · Caso {{ item.caseId }} · Ronda {{ item.ronda }}</span>
+          <h2>{{ item.municipio }} · {{ item.zona }}</h2><p>Gravedad {{ item.gravedad }}</p></div>
+        <div><span class="badge">{{ item.estado | textoCodigo }}</span>
+          <p *ngIf="item.sincronizacion">Decisión {{ item.sincronizacion | textoCodigo }}</p>
+          <p *ngIf="!item.compatible" class="texto-alerta">Proceso anterior: solo consulta</p>
+          <span class="ver flex items-center gap-2 text-xs font-bold mt-3">Revisar emergencia <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span></div>
+      </a>
+    </div>
+    <div class="paginacion flex justify-between items-center gap-4 flex-wrap" *ngIf="lista.totalPaginas > 1">
+      <button class="boton secundario" [disabled]="lista.pagina === 0" (click)="cambiarPagina(-1)">Anterior</button>
+      <span>Página {{ lista.pagina + 1 }} de {{ lista.totalPaginas }}</span>
+      <button class="boton secundario" [disabled]="lista.pagina + 1 >= lista.totalPaginas" (click)="cambiarPagina(1)">Siguiente</button>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="revision() as r">
+    <article class="tarjeta ficha bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6">
+      <p class="eyebrow">Información de la contingencia</p>
+      <div class="titulo flex justify-between items-center gap-4 flex-wrap"><h2>Emergencia #{{ r.emergenciaId }} · {{ r.evaluacion.emergencia.tipoEmergencia }}</h2><span class="badge">{{ r.estado | textoCodigo }}</span></div>
+      <dl class="datos grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 mt-6">
+        <div><dt>Municipio</dt><dd>{{ r.evaluacion.emergencia.municipioNombre }}</dd></div>
+        <div><dt>Zona afectada</dt><dd>{{ r.evaluacion.emergencia.zonaAfectada }}</dd></div>
+        <div><dt>Gravedad</dt><dd>{{ r.evaluacion.emergencia.nivelGravedad }}</dd></div>
+        <div><dt>Convocatoria actual</dt><dd>Ronda {{ r.ronda }} · Caso {{ r.caseId }}</dd></div>
+        <div><dt>Apertura evaluada</dt><dd>{{ (r.evaluacion.emergencia.fechaAperturaConvocatoria | date:'dd/MM/yyyy HH:mm:ss') || 'No disponible' }}</dd></div>
+        <div><dt>Vencimiento evaluado</dt><dd>{{ (r.evaluacion.emergencia.fechaVencimientoConvocatoria | date:'dd/MM/yyyy HH:mm:ss') || 'No disponible' }}</dd></div>
+        <div><dt>Evaluación nacional</dt><dd>{{ r.evaluacion.cobertura.fechaValidacion | date:'dd/MM/yyyy HH:mm:ss' }}</dd></div>
+        <div><dt>Plazo evaluado</dt><dd>{{ r.evaluacion.emergencia.duracionConvocatoriaMinutos ?? 'No disponible' }} minutos</dd></div>
+      </dl>
+      <div class="descripcion"><span class="eyebrow">Descripción</span><p>{{ r.evaluacion.emergencia.descripcion }}</p></div>
+      <p *ngIf="r.evaluacion.emergencia.milimetrosAgua != null">Agua: {{ r.evaluacion.emergencia.milimetrosAgua }} mm</p>
+      <p *ngIf="r.evaluacion.emergencia.hectareasAfectadas != null">Superficie afectada: {{ r.evaluacion.emergencia.hectareasAfectadas }} hectáreas</p>
+      <p *ngIf="r.evaluacion.emergencia.magnitudRichter != null">Magnitud: {{ r.evaluacion.emergencia.magnitudRichter }}</p>
+    </article>
+
+    <div class="resumen flex items-center gap-4 p-4 sm:px-5 bg-orange-50 border border-orange-200 rounded-xl text-orange-800"><span class="material-symbols-outlined" aria-hidden="true">monitoring</span><div><strong>{{ r.evaluacion.cobertura.lotesConCoberturaMinima }} / {{ r.evaluacion.cobertura.totalLotes }} lotes alcanzan el mínimo</strong><p>Se requiere al menos el 50% en cada lote. Principal y apoyo cuentan.</p></div></div>
+    <div class="detalle-grid"><div class="lotes grid gap-5 content-start">
+    <article class="tarjeta lote bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6" *ngFor="let lote of r.evaluacion.cobertura.lotes">
+      <p class="eyebrow">Cobertura de recursos · Lote #{{ lote.loteId }}</p>
+      <div class="titulo flex justify-between items-center gap-4 flex-wrap"><h2>{{ lote.tipoRecurso }}</h2><span class="badge" [class.cumple]="lote.coberturaMinimaAlcanzada">{{ lote.porcentajeCobertura | number:'1.0-1' }}% cubierto</span></div>
+      <div class="progreso" role="progressbar" [attr.aria-label]="'Cobertura de ' + lote.tipoRecurso" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="porcentajeVisual(lote.porcentajeCobertura)"><div [style.width.%]="porcentajeVisual(lote.porcentajeCobertura)" [class.cumple]="lote.coberturaMinimaAlcanzada"></div><i title="Mínimo del 50%"></i></div>
+      <div class="escala"><span>{{ lote.cantidadHabilitada }} de {{ lote.cantidadRequerida }} habilitados</span><span>Umbral mínimo: 50%</span></div>
+      <dl class="datos metricas grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 mt-6">
+        <div><dt>Solicitado</dt><dd>{{ lote.cantidadRequerida }}</dd></div><div><dt>Habilitado</dt><dd>{{ lote.cantidadHabilitada }}</dd></div>
+        <div><dt>Mínimo del 50%</dt><dd>{{ minimo(lote.cantidadRequerida) }}</dd></div>
+        <div><dt>Falta para el mínimo</dt><dd>{{ faltante(minimo(lote.cantidadRequerida), lote.cantidadHabilitada) }}</dd></div>
+        <div><dt>Faltante total</dt><dd>{{ faltante(lote.cantidadRequerida, lote.cantidadHabilitada) }}</dd></div>
+      </dl>
+      <h3 class="ofertas-titulo">Ofertas recibidas <span>{{ ofertasDelLote(r.evaluacion, lote.loteId).length }}</span></h3>
+      <p *ngIf="!ofertasDelLote(r.evaluacion, lote.loteId).length" class="sin-ofertas">No se recibieron ofertas para este lote.</p>
+      <section class="oferta" *ngFor="let item of ofertasDelLote(r.evaluacion, lote.loteId)" [class.excluida]="item.clasificacion !== 'Validada'">
+        <div class="titulo flex justify-between items-center gap-4 flex-wrap"><h3>{{ item.perfil.ongNombre || item.oferta.ongLider }} · Oferta #{{ item.oferta.id }}</h3>
+          <span class="badge" [class.cumple]="item.clasificacion === 'Validada'">{{ item.clasificacion === 'Validada' ? 'Habilitada para computar' : (item.clasificacion === 'NoHabilitada' ? 'No habilitada · excluida' : 'Sin disponibilidad · excluida') }}</span></div>
+        <p>{{ item.oferta.cantidadOfrecida }} {{ item.oferta.unidad }} · Llegada: {{ item.oferta.tiempoLlegada }}</p>
+        <p *ngIf="item.oferta.observaciones">{{ item.oferta.observaciones }}</p>
+        <details class="nacional"><summary>Ver evaluación nacional <span class="material-symbols-outlined" aria-hidden="true">expand_more</span></summary>
+        <p>Resultado: {{ (item.perfil.resultado | textoCodigo) || 'No disponible' }}</p>
+        <div class="capacidad" *ngFor="let cap of item.perfil.capacidades">
+          <span>Rol: <strong>{{ cap.rolPermitido | textoCodigo }}</strong></span><span>Disponibles: <strong>{{ cap.cantidadDisponible }}</strong></span>
+          <span>Nivel: {{ cap.nivel ?? 'No disponible' }}</span><span>Riesgo permitido: {{ cap.riesgoMaximoPermitido || 'No disponible' }}</span>
+          <span>Certificación: {{ cap.certificacion || 'No disponible' }}</span>
+          <p *ngIf="cap.motivo">{{ cap.motivo }}</p>
+        </div>
+        </details>
+        <p *ngIf="item.motivoExclusion" class="texto-alerta">{{ item.motivoExclusion }}. La oferta se conserva como antecedente y no ocupa el faltante.</p>
+      </section>
+    </article>
+    </div><aside class="panel-decision grid gap-5 content-start" aria-label="Decisión e historial">
+
+    <section class="tarjeta bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6" *ngIf="r.decisiones.length"><h2>Decisiones e integración</h2>
+      <div class="decision" *ngFor="let d of r.decisiones">
+        <strong>Ronda {{ d.ronda }} · {{ d.decision === 'REABRIR' ? 'Reabrir convocatoria' : 'Cancelar emergencia' }} · {{ d.estado | textoCodigo }}</strong>
+        <p>{{ d.coordinador }} · {{ d.fecha | date:'dd/MM/yyyy HH:mm:ss' }}<span *ngIf="d.duracionMinutos"> · {{ d.duracionMinutos }} minutos</span></p><p>{{ d.motivo }}</p>
+        <p *ngIf="d.error" class="texto-alerta" role="status">{{ d.error }} · Intentos: {{ d.intentos }}</p>
+      </div>
+    </section>
+
+    <section class="tarjeta acciones bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6" *ngIf="r.puedeDecidir; else sinAcciones">
+      <p class="eyebrow">Próximo paso</p><h2>Decisión del coordinador</h2><p>Podés abrir un nuevo plazo para completar los recursos o dar por finalizada la emergencia.</p>
+      <form [formGroup]="form" (submit)="$event.preventDefault()">
+        <label for="motivo">Motivo de la decisión <span>(obligatorio)</span></label>
+        <textarea id="motivo" formControlName="motivo" maxlength="1000" rows="4" placeholder="Explicá por qué se toma esta decisión…"></textarea>
+        <p class="caracteres text-right text-[10px] text-slate-400 mt-1">{{ form.controls.motivo.value.length }} / 1000</p>
+        <p *ngIf="form.controls.motivo.touched && form.controls.motivo.invalid" class="texto-alerta">Ingresá un motivo de hasta 1000 caracteres.</p>
+        <label for="duracion">Nuevo plazo si se reabre (minutos)</label><input id="duracion" type="number" min="1" max="2147483647" step="1" formControlName="duracionMinutos">
+        <p *ngIf="form.controls.duracionMinutos.touched && form.controls.duracionMinutos.invalid" class="texto-alerta">El plazo debe ser un número entero de minutos mayor que cero.</p>
+        <p class="ayuda">La reapertura conserva los lotes y las ofertas habilitadas. Las ONGs podrán editar sus aportes durante el nuevo plazo.</p>
+        <div class="botones"><button type="button" class="boton" [disabled]="enviando()" (click)="preparar('REABRIR')"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span> Reabrir convocatoria</button><button type="button" class="boton peligro" [disabled]="enviando()" (click)="preparar('CANCELAR')"><span class="material-symbols-outlined" aria-hidden="true">cancel</span> Cancelar emergencia</button></div>
+      </form>
+    </section>
+    <ng-template #sinAcciones><p class="mensaje aviso">{{ !r.compatible ? 'Instancia de una versión anterior: disponible solo para consulta.' : 'Esta ronda no admite una nueva decisión. Si hay una sincronización pendiente, su estado se actualizará automáticamente.' }}</p></ng-template>
+
+    <details class="tarjeta bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6" *ngIf="r.historial.length"><summary>Historial de convocatorias</summary>
+      <section *ngFor="let ev of r.historial" class="decision"><h3>Ronda {{ ev.ronda }} · {{ ev.fecha | date:'dd/MM/yyyy HH:mm:ss' }}</h3>
+        <p>{{ ev.depurada ? 'Depuración completada' : 'Sin depuración' }} · {{ ev.evaluacion.cobertura.lotesConCoberturaMinima }}/{{ ev.evaluacion.cobertura.totalLotes }} lotes al mínimo</p>
+        <p *ngFor="let l of ev.evaluacion.cobertura.lotes">{{ l.tipoRecurso }}: {{ l.cantidadHabilitada }}/{{ l.cantidadRequerida }} · {{ l.porcentajeCobertura | number:'1.0-1' }}%</p>
+        <p *ngFor="let o of ev.evaluacion.ofertas">Oferta #{{ o.oferta.id }} · {{ o.oferta.ongLider }} · {{ o.oferta.cantidadOfrecida }} {{ o.oferta.unidad }} · {{ o.clasificacion }}<span *ngIf="o.motivoExclusion"> · {{ o.motivoExclusion }}</span></p>
+      </section>
+    </details>
+    </aside></div>
+  </ng-container>
+</section>
+
+<div *ngIf="confirmacion() as accion" class="modal-fondo fixed inset-0 bg-slate-950/60 z-50 flex items-center justify-center p-4" (click)="!enviando() && confirmacion.set(null)">
+  <section class="modal tarjeta max-w-lg w-full max-h-[90vh] overflow-auto bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="titulo-confirmacion" (click)="$event.stopPropagation()">
+    <h2 id="titulo-confirmacion">{{ accion === 'REABRIR' ? '¿Reabrir la convocatoria?' : '¿Cancelar la emergencia?' }}</h2>
+    <p>{{ accion === 'REABRIR' ? 'Se abrirá un nuevo plazo de ' + form.controls.duracionMinutos.value + ' minutos, conservando los lotes y aportes habilitados.' : 'La emergencia se cancelará y el proceso finalizará. No se admitirán más ofertas.' }}</p>
+    <p><strong>Motivo:</strong> {{ form.controls.motivo.value }}</p>
+    <div class="botones"><button class="boton secundario" [disabled]="enviando()" (click)="confirmacion.set(null)">Volver</button><button class="boton" [class.peligro]="accion === 'CANCELAR'" [disabled]="enviando()" (click)="confirmar()">{{ enviando() ? 'Registrando…' : 'Confirmar decisión' }}</button></div>
+  </section>
+</div>

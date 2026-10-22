@@ -51,6 +51,7 @@ public EmergenciaResponseDTO crearEmergencia(EmergenciaRequestDTO dto) {
     try {
         Long caseId = bonitaService.iniciarInstanciaEmergencia(dto,guardada.getId());
         guardada.setCaseId(caseId);
+        guardada.setVersionFlujo(bonitaService.getConfiguredProcessVersion());
 
     } catch (Exception e) {
         // Lanza excepción para hacer Rollback en la BD local si Bonita falla

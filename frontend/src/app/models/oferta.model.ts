@@ -12,7 +12,7 @@ export interface OfertaLocal {
   tiempoLlegada: string;
   observaciones?: string;
   fechaHora?: string;
-  estado: 'Registrada' | 'Rectificada' | 'Validada' | 'Retirada';
+  estado: 'Registrada' | 'Rectificada' | 'Validada' | 'Retirada' | 'NoHabilitada' | 'SinDisponibilidad';
   /** Username de la ONG que realizó la oferta */
   ongLider?: string;
 }

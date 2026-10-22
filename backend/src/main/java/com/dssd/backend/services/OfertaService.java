@@ -85,6 +85,7 @@ public class OfertaService {
         LoteNecesidad lote = bloquear(lote(oferta).getId());
         abierta(lote);
         oferta.setEstado("Retirada");
+        oferta.setRondaEvaluacion(null);
         oferta.setFechaHora(Instant.now());
         ofertas.flush();
         sincronizarCubierta(lote);
@@ -98,7 +99,7 @@ public class OfertaService {
         bloquearEmergencia(emergenciaIds.get(0));
         OfertaAyuda oferta = ofertas.bloquearPropia(id, ong(usuario))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Oferta no encontrada"));
-        if (!List.of("Registrada", "Rectificada").contains(oferta.getEstado())) {
+        if (!List.of("Registrada", "Rectificada", "Validada").contains(oferta.getEstado())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Esta oferta ya no admite modificaciones");
         }
         return oferta;
@@ -148,6 +149,9 @@ public class OfertaService {
     }
 
     private void aplicar(OfertaAyuda oferta, OfertaRequestDTO dto) {
+        oferta.setRondaEvaluacion(null);
+        oferta.setMotivoExclusion(null);
+        oferta.setNivelHabilitacion(0);
         oferta.getDetalles().get(0).setCantidadOfrecida(dto.cantidadOfrecida());
         oferta.setUnidad(dto.unidad());
         oferta.setTiempoLlegada(dto.tiempoLlegada());

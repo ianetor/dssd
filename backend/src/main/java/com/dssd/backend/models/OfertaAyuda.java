@@ -29,6 +29,8 @@ public class OfertaAyuda {
 
     @Column(nullable = true)
     private Integer nivelHabilitacion;
+    private Integer rondaEvaluacion;
+    @Column(length = 1000) private String motivoExclusion;
 
     @Column(nullable = false)
     private Boolean recursosBloqueados = false;

@@ -28,7 +28,9 @@ public class BonitaClientService {
             @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}") String bonitaUrl,
             @Value("${bonita.username:${BONITA_USERNAME:install}}") String username,
             @Value("${bonita.password:${BONITA_PASSWORD:install}}") String password) {
-        this.restClient = RestClient.builder().baseUrl(bonitaUrl).build();
+        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000); factory.setReadTimeout(10000);
+        this.restClient = RestClient.builder().baseUrl(bonitaUrl).requestFactory(factory).build();
         this.bonitaUrl = bonitaUrl;
         this.username = username;
         this.password = password;

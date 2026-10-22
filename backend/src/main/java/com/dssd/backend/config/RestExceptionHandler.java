@@ -11,6 +11,11 @@ import org.springframework.web.client.RestClientResponseException;
 
 @RestControllerAdvice
 public class RestExceptionHandler {
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleEstado(org.springframework.web.server.ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of("status", ex.getStatusCode().value(),
+                "message", ex.getReason() == null ? "Solicitud rechazada" : ex.getReason()));
+    }
 
     @ExceptionHandler(RestClientResponseException.class)
     public ResponseEntity<Map<String, Object>> handleBonitaError(RestClientResponseException ex) {

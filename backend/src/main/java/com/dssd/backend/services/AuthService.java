@@ -33,7 +33,9 @@ public class AuthService {
     public AuthService(
             @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}") String bonitaUrl) {
         this.bonitaUrl = bonitaUrl;
-        this.restClient = RestClient.builder().baseUrl(bonitaUrl).build();
+        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000); factory.setReadTimeout(10000);
+        this.restClient = RestClient.builder().baseUrl(bonitaUrl).requestFactory(factory).build();
 
         this.objectMapper = new ObjectMapper();
     }

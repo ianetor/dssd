@@ -25,19 +25,45 @@ public class ValidacionCoberturaService {
     private final LoteNecesidadRepository lotes;
     private final OfertaAyudaRepository ofertas;
     private final ObjectMapper mapper;
+    private final EvaluacionConvocatoriaRepository evaluaciones;
+    private final SnapshotCoberturaService snapshots;
+    private final ArchivoEvaluacionService archivo;
 
     public ValidacionCoberturaService(EmergenciaRepository emergencias, LoteNecesidadRepository lotes,
-            OfertaAyudaRepository ofertas, ObjectMapper mapper) {
+            OfertaAyudaRepository ofertas, ObjectMapper mapper, EvaluacionConvocatoriaRepository evaluaciones,
+            SnapshotCoberturaService snapshots, ArchivoEvaluacionService archivo) {
         this.emergencias = emergencias;
         this.lotes = lotes;
         this.ofertas = ofertas;
         this.mapper = mapper;
+        this.evaluaciones = evaluaciones;
+        this.snapshots = snapshots;
+        this.archivo = archivo;
     }
 
     public ValidacionCoberturaDTO validarPorCaso(Long caseId, ValidacionCoberturaRequestDTO request) {
         Emergencia referencia = emergencias.findByCaseId(caseId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Caso de emergencia no encontrado"));
         Emergencia emergencia = emergencias.bloquearPorId(referencia.getId()).orElseThrow();
+        if (request.ronda() == null || request.ronda() != emergencia.rondaActual()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La evaluación pertenece a otra ronda");
+        }
+        var anterior = evaluaciones.findByEmergenciaIdAndRonda(emergencia.getId(), request.ronda());
+        if (anterior.isPresent()) {
+                var guardada = archivo.entrada(anterior.get());
+                var entradas = request.validaciones().stream().collect(Collectors.toMap(ValidacionOferta::ofertaId, Function.identity(), (a,b) -> { throw invalido("Oferta duplicada"); }));
+                var previas = guardada.validaciones().stream().collect(Collectors.toMap(ValidacionOferta::ofertaId, Function.identity()));
+                if (!entradas.equals(previas)) throw new ResponseStatusException(HttpStatus.CONFLICT, "La ronda ya tiene una evaluación distinta");
+                return archivo.leer(anterior.get()).cobertura();
+        }
+        // El timer de Bonita puede llegar antes que el worker local de cierre.
+        if ("CONVOCATORIA_ABIERTA".equals(emergencia.getEstado())
+                && emergencia.getFechaVencimientoConvocatoria() != null
+                && !emergencia.getFechaVencimientoConvocatoria().isAfter(Instant.now())) {
+            emergencia.setEstado("CONVOCATORIA_CERRADA");
+            emergencia.setMotivoCierre("TIEMPO_AGOTADO");
+            emergencia.setFechaCierreConvocatoria(emergencia.getFechaVencimientoConvocatoria());
+        }
         if (!"CONVOCATORIA_CERRADA".equals(emergencia.getEstado())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La convocatoria debe estar cerrada para validar cobertura");
         }
@@ -78,7 +104,7 @@ public class ValidacionCoberturaService {
                 }
                 // La disponibilidad nacional es informativa: el bloqueo se realiza al adjudicar.
                 // Una oferta sin disponibilidad suficiente debe rectificarse antes de poder contar.
-                if (capacidad.cantidadDisponible() < cantidad || capacidad.rolPermitido() == RolPermitido.NO_HABILITADA) continue;
+                if (!capacidad.utilizable()) continue;
                 Map<Long, Long> destino = capacidad.rolPermitido() == RolPermitido.PRINCIPAL ? principales : apoyos;
                 for (DetalleOferta detalle : detalles) {
                     destino.merge(detalle.getLote().getId(), detalle.getCantidadOfrecida().longValue(), Long::sum);
@@ -106,6 +132,12 @@ public class ValidacionCoberturaService {
                 total, cubiertos, Instant.now(), detalleLotes);
         emergencia.setValidacionesNacionalesJson(serializar(request));
         emergencia.setResultadoCoberturaJson(serializar(resultado));
+        EvaluacionConvocatoria evaluacion = new EvaluacionConvocatoria();
+        evaluacion.setEmergencia(emergencia);
+        evaluacion.setRonda(request.ronda());
+        evaluacion.setFecha(resultado.fechaValidacion());
+        archivo.guardar(evaluacion, snapshots.crear(emergencia, solicitados, activas.values(), evaluaciones, resultado));
+        this.evaluaciones.save(evaluacion);
         return resultado;
     }
 

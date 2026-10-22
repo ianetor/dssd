@@ -43,7 +43,8 @@ public class BonitaService {
             @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}") String bonitaUrl,
             @Value("${bonita.username:${BONITA_USERNAME:install}}") String username,
             @Value("${bonita.password:${BONITA_PASSWORD:install}}") String password) {
-        this.restClient = RestClient.builder().baseUrl(bonitaUrl).build();
+        this.restClient = RestClient.builder().baseUrl(bonitaUrl)
+                .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory()).build();
         this.bonitaUrl = bonitaUrl;
         this.username = username;
         this.password = password;
@@ -166,6 +167,8 @@ public class BonitaService {
             throw new RuntimeException("Error al instanciar el proceso '" + processName + "' versión " + processVersion + " en Bonita", e);
         }
     }
+
+    public String getConfiguredProcessVersion() { return processVersion; }
 
     public String listProcesses() {
         Map<String, String> params = new LinkedHashMap<>();

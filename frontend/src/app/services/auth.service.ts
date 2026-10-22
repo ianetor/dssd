@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, catchError, of, finalize, timeout } from 'rxjs';
 import { environment } from '../../enviroments/environment';
 import { LoginCredentials, RolUsuario, UsuarioAutenticado } from '../models/auth.model';
 
@@ -16,7 +16,7 @@ export class AuthService {
   private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   // Signal reactivo para usuario logueado
-  readonly currentUser = signal<UsuarioAutenticado | null>(this.obtenerUsuarioAlmacenado());
+  readonly currentUser = signal<UsuarioAutenticado | null>(null);
 
   // Propiedades computadas para templates
   readonly isLoggedIn = computed(() => !!this.currentUser());
@@ -33,6 +33,12 @@ export class AuthService {
   }
 
   logout(): void {
+    this.http.post<void>(`${this.apiUrl}/logout`, {}, { withCredentials: true }).pipe(
+      catchError(() => of(undefined)), finalize(() => this.limpiarSesion()),
+    ).subscribe();
+  }
+
+  limpiarSesion(): void {
     localStorage.removeItem(STORAGE_KEY);
     this.currentUser.set(null);
     void this.router.navigate(['/login']);
@@ -48,12 +54,14 @@ export class AuthService {
     this.currentUser.set(usuario);
   }
 
-  private obtenerUsuarioAlmacenado(): UsuarioAutenticado | null {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data ? (JSON.parse(data) as UsuarioAutenticado) : null;
-    } catch {
-      return null;
-    }
+  restaurarSesion(): Observable<UsuarioAutenticado | null> {
+    return this.http.get<UsuarioAutenticado>(`${this.apiUrl}/me`, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of(null)),
+      tap(usuario => {
+        if (usuario) this.guardarUsuario(usuario);
+        else { localStorage.removeItem(STORAGE_KEY); this.currentUser.set(null); }
+      }),
+    );
   }
 }

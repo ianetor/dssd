@@ -51,6 +51,10 @@ public abstract class Emergencia {
     private String municipioNombre;
 
     private Long caseId;
+    private String versionFlujo;
+    private Integer rondaConvocatoria = 1;
+
+    public int rondaActual() { return rondaConvocatoria == null ? 1 : rondaConvocatoria; }
 
     private Long duracionConvocatoriaMinutos;
     private java.time.Instant fechaAperturaConvocatoria;

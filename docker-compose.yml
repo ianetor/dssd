@@ -26,6 +26,7 @@ services:
       target: dev
 
     container_name: spring_backend
+    command: ["./mvnw", "-Dbackend.build.directory=/tmp/rescuesync-backend-target", "spring-boot:run"]
     restart: always
     ports:
       - "8080:8080"
@@ -47,7 +48,10 @@ services:
       BONITA_USERNAME: anthony.nichols
       BONITA_PASSWORD: bpm
       BONITA_PROCESS_NAME: RescueSync
-      BONITA_PROCESS_VERSION: "1.0"
+      BONITA_PROCESS_VERSION: ${BONITA_PROCESS_VERSION:-1.0}
+      BONITA_INTEGRATION_KEY: ${BONITA_INTEGRATION_KEY:-3e5f18ed04dbae45ec7474dca603ed17af2e047d2046e164687b255e75b05c6f}
+      BONITA_REVIEW_USERNAME: ${BONITA_REVIEW_USERNAME:-rescuesync}
+      BONITA_REVIEW_PASSWORD: ${BONITA_REVIEW_PASSWORD:-bpm}
       CONVOCATORIA_PUBLICACION_INTERVALO_MS: 5000
       CONVOCATORIA_CIERRE_INTERVALO_MS: 5000
       CONVOCATORIA_COBERTURA_INTERVALO_MS: 5000

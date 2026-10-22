@@ -8,6 +8,16 @@ import { authGuard, guestGuard, roleGuard, rootGuard } from './guards/auth.guard
 
 export const routes: Routes = [
   {
+    path: 'coordinador/cobertura-insuficiente/:id',
+    loadComponent: () => import('./components/cobertura-insuficiente/cobertura-insuficiente.component').then(m => m.CoberturaInsuficienteComponent),
+    canActivate: [authGuard, roleGuard(['COORDINADOR_REGIONAL'])],
+  },
+  {
+    path: 'coordinador/cobertura-insuficiente',
+    loadComponent: () => import('./components/cobertura-insuficiente/cobertura-insuficiente.component').then(m => m.CoberturaInsuficienteComponent),
+    canActivate: [authGuard, roleGuard(['COORDINADOR_REGIONAL'])],
+  },
+  {
     path: '',
     canActivate: [rootGuard],
     children: [],
