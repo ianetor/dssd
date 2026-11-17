@@ -38,6 +38,8 @@ public class BonitaService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private volatile String jsessionId;
+    
+    private static final String TAREA_MONITOREO = "Monitorear despliegue y ejecucion";
 
     public BonitaService(
             @Value("${bonita.url:${BONITA_URL:http://localhost:8081/bonita}}") String bonitaUrl,
@@ -423,6 +425,51 @@ public class BonitaService {
                 new HttpEntity<>(Map.of("assigned_id", userId), headers));
         restTemplate.postForEntity(bonitaUrl + "/API/bpm/userTask/" + taskId + "/execution?assign=true&user=" + userId,
                 new HttpEntity<>(Map.of(), headers), String.class);
+    }
+
+
+
+    /**
+     * Completa la tarea humana de monitoreo para que Bonita avance al cierre y la
+     * liberación nacional. Idempotente: si la tarea ya fue completada no hace nada.
+     */
+    public void completarMonitoreo(Long caseId) {
+        HttpHeaders headers = login();
+        var tareas = tareasActivasCobertura(caseId, headers).stream()
+                .filter(t -> TAREA_MONITOREO.equals(t.path("name").asText())).toList();
+        if (tareas.isEmpty()) {
+            if (tareaCompletada(caseId, TAREA_MONITOREO, headers)) return;
+            throw new IllegalStateException("La tarea de monitoreo todavía no está disponible en Bonita");
+        }
+        if (tareas.size() > 1) throw new IllegalStateException("Más de una tarea de monitoreo para el caso");
+        JsonNode tarea = tareas.get(0);
+        long taskId = tarea.path("id").asLong();
+        JsonNode proceso = leerPublicacion("/API/bpm/process/" + tarea.path("processId").asText(), headers);
+        if (!processName.equals(proceso.path("name").asText())) throw new IllegalStateException("La tarea pertenece a otro proceso");
+        JsonNode contrato = leerPublicacion("/API/bpm/userTask/" + taskId + "/contract", headers);
+        if (!contrato.path("inputs").isArray() || !contrato.path("inputs").isEmpty()) {
+            throw new IllegalStateException("Monitorear despliegue y ejecucion debe tener un contrato sin entradas");
+        }
+        String userId = getUserId(headers);
+        if (userId == null) throw new IllegalStateException("No se pudo identificar el usuario de Bonita");
+        restTemplate.put(bonitaUrl + "/API/bpm/humanTask/" + taskId,
+                new HttpEntity<>(Map.of("assigned_id", userId), headers));
+        restTemplate.postForEntity(bonitaUrl + "/API/bpm/userTask/" + taskId + "/execution?assign=true&user=" + userId,
+                new HttpEntity<>(Map.of(), headers), String.class);
+    }
+
+    private boolean tareaCompletada(Long caseId, String nombre, HttpHeaders headers) {
+        for (int pagina = 0; ; pagina++) {
+            // Los filtros documentados del historial son name/state; el caso se valida localmente.
+            JsonNode archivadas = leerPublicacion("/API/bpm/archivedHumanTask?p=" + pagina
+                    + "&c=100&f=state=completed&f=name=" + nombre, headers);
+            if (!archivadas.isArray()) throw new IllegalStateException("Historial de tareas de Bonita inválido");
+            for (JsonNode tarea : archivadas) {
+                if (tarea.path("parentCaseId").asLong() == caseId && nombre.equals(tarea.path("name").asText())
+                        && "completed".equals(tarea.path("state").asText())) return true;
+            }
+            if (archivadas.size() < 100) return false;
+        }
     }
 
     private JsonNode leerPublicacion(String path, HttpHeaders headers) {

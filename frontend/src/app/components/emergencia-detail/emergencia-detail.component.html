@@ -98,12 +98,33 @@
               <label class="text-xs font-mono uppercase font-semibold text-slate-600">
                 Nombre o Categoría del Lote <span class="text-red-500">*</span>
               </label>
-              <input formControlName="nombre"
+              <!-- Catálogo del Sistema Nacional: el nombre coincide con el que valida la red nacional -->
+              <select *ngIf="!nombreManual" formControlName="nombre"
+                      class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium"
+                      [class.border-red-400]="loteForm.get('nombre')?.invalid && loteForm.get('nombre')?.touched">
+                <option value="" disabled>{{ catalogoEstado === 'cargando' ? 'Consultando Sistema Nacional…' : 'Elegí un recurso' }}</option>
+                <option *ngFor="let r of catalogo" [value]="r.tipoRecurso">
+                  {{ r.tipoRecurso }} — {{ r.cantidadDisponible }} disponibles ({{ r.ongsAportantes }} ONGs)
+                </option>
+              </select>
+              <input *ngIf="nombreManual" formControlName="nombre"
                      type="text"
                      maxlength="255"
-                     placeholder="Ej: Paramédicos y Rescate Acuático"
+                     placeholder="Ej: Paramedicos"
                      class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium"
                      [class.border-red-400]="loteForm.get('nombre')?.invalid && loteForm.get('nombre')?.touched" />
+              <p *ngIf="catalogoEstado === 'error'" class="text-xs text-amber-700" role="status">
+                No se pudo consultar el Sistema Nacional. Podés escribir el recurso a mano; si el nombre no coincide
+                con el catálogo nacional, las ofertas no van a validar.
+                <button type="button" class="underline font-semibold" (click)="cargarCatalogo()">Reintentar</button>
+              </p>
+              <p *ngIf="nombreManual && catalogoEstado === 'ok'" class="text-xs text-amber-700">
+                Un recurso fuera del catálogo nacional no puede validarse: ninguna ONG lo tiene cargado.
+              </p>
+              <button *ngIf="catalogoEstado === 'ok' && catalogo.length > 0" type="button"
+                      class="self-start text-xs underline text-slate-600" (click)="alternarNombreManual()">
+                {{ nombreManual ? 'Elegir del catálogo nacional' : 'Escribir otro recurso' }}
+              </button>
               <div *ngIf="loteForm.get('nombre')?.invalid && loteForm.get('nombre')?.touched" class="text-xs text-red-600">
                 <span *ngIf="loteForm.get('nombre')?.errors?.['required']">El nombre es obligatorio.</span>
                 <span *ngIf="loteForm.get('nombre')?.errors?.['maxlength']">Máximo 255 caracteres.</span>
@@ -129,6 +150,9 @@
                        placeholder="equipos / raciones"
                        class="w-full h-10 px-3 bg-surface-container-low border border-slate-300 rounded text-sm text-[#0b192c] focus:ring-2 focus:ring-secondary outline-none font-medium" />
               </div>
+              <p *ngIf="disponibilidadLote as d" class="text-xs" role="status"
+                 [class.text-amber-700]="d.nivel === 'aviso'" [class.text-red-600]="d.nivel === 'bloqueo'"
+                 [class.hidden]="d.nivel === 'ok'">{{ d.mensaje }}</p>
             </div>
 
             <!-- Prioridad -->

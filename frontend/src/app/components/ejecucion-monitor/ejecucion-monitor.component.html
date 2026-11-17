@@ -1,0 +1,98 @@
+<section class="ejecucion">
+  <header class="titulo flex justify-between items-center gap-4 flex-wrap">
+    <div>
+      <p class="eyebrow"><a routerLink="/">Inicio</a> / Centro Coordinador Regional</p>
+      <h1><span class="material-symbols-outlined" aria-hidden="true">monitoring</span> Monitoreo de despliegue y ejecución</h1>
+      <p>Seguimiento de las ONGs adjudicadas y cierre de la emergencia.</p>
+    </div>
+    <a routerLink="/emergencias" class="boton secundario">
+      <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span> Volver a emergencias</a>
+  </header>
+
+  <p *ngIf="cargando()" role="status">Cargando estado de la ejecución…</p>
+  <p *ngIf="error()" class="mensaje error" role="alert">{{ error() }}</p>
+  <p *ngIf="aviso()" class="mensaje aviso" role="status">{{ aviso() }}</p>
+
+  <ng-container *ngIf="datos() as d">
+    <article class="tarjeta ficha bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6">
+      <p class="eyebrow">Emergencia #{{ d.emergenciaId }} · Caso {{ d.caseId }}</p>
+      <div class="flex justify-between items-center gap-4 flex-wrap">
+        <h2>{{ d.zonaAfectada }} · Gravedad {{ d.nivelGravedad }}</h2>
+        <span class="badge" [class.ok]="d.estado === 'FINALIZADA'">{{ d.estado | textoCodigo }}</span>
+      </div>
+      <div class="progreso" role="progressbar" aria-label="ONGs que finalizaron" aria-valuemin="0" aria-valuemax="100"
+        [attr.aria-valuenow]="porcentaje(d)"><div [style.width.%]="porcentaje(d)"></div></div>
+      <dl class="datos grid grid-cols-2 md:grid-cols-4 gap-5 mt-4">
+        <div><dt>ONGs adjudicadas</dt><dd>{{ d.totalOngs }}</dd></div>
+        <div><dt>Finalizaron</dt><dd>{{ d.ongsFinalizadas }}</dd></div>
+        <div><dt>En curso</dt><dd>{{ pendientes(d) }}</dd></div>
+        <div><dt>Inicio de ejecución</dt><dd>{{ (d.fechaInicioEjecucion | date:'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+      </dl>
+    </article>
+
+    <div class="grilla">
+      <div class="lista grid gap-4 content-start">
+        <article *ngFor="let p of d.participaciones" class="tarjeta bg-white border border-slate-200 rounded-xl shadow-sm p-5"
+          [class.finalizada]="p.estado === 'FINALIZADA'">
+          <div class="flex justify-between items-center gap-4 flex-wrap">
+            <h3><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span> {{ p.ong }}</h3>
+            <span class="badge" [class.ok]="p.estado === 'FINALIZADA'">{{ p.estado | textoCodigo }}</span>
+          </div>
+          <ul class="recursos">
+            <li *ngFor="let r of p.recursos"><strong>{{ r.cantidad }}</strong> {{ r.tipoRecurso }}
+              <span *ngIf="r.unidad">({{ r.unidad }})</span></li>
+          </ul>
+          <p *ngIf="p.fechaFinalizacion" class="detalle">Finalizó el {{ p.fechaFinalizacion | date:'dd/MM/yyyy HH:mm' }}</p>
+          <p *ngIf="p.observaciones" class="detalle">Observaciones: {{ p.observaciones }}</p>
+          <p *ngIf="p.estado === 'EN_CURSO'" class="detalle">Desplegada. Todavía no informó la finalización.</p>
+        </article>
+      </div>
+
+      <aside class="tarjeta acciones bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+        <p class="eyebrow">Cierre de la ejecución</p>
+
+        <ng-container *ngIf="d.estado === 'FINALIZADA'">
+          <p class="mensaje ok">Emergencia finalizada el {{ d.fechaCierreEjecucion | date:'dd/MM/yyyy HH:mm' }}.
+            Los recursos fueron liberados en el Sistema Nacional.</p>
+          <p *ngIf="d.coordinadorCierre" class="detalle">Cerrada por {{ d.coordinadorCierre }}.</p>
+          <p *ngIf="d.motivoCierreEjecucion" class="detalle">Cierre forzado: {{ d.motivoCierreEjecucion }}</p>
+        </ng-container>
+
+        <ng-container *ngIf="d.estado === 'CIERRE_PENDIENTE'">
+          <p class="mensaje aviso">Cierre solicitado por {{ d.coordinadorCierre }}. Esperando que Bonita libere los
+            recursos en el Sistema Nacional.</p>
+          <p *ngIf="d.motivoCierreEjecucion" class="detalle">Cierre forzado: {{ d.motivoCierreEjecucion }}</p>
+          <button *ngIf="esCoordinador()" class="boton secundario" [disabled]="enviando()" (click)="cerrar(d)">
+            <span class="material-symbols-outlined" aria-hidden="true">sync</span> Reintentar avance en Bonita</button>
+        </ng-container>
+
+        <ng-container *ngIf="d.estado === 'EN_EJECUCION'">
+          <p *ngIf="d.puedeCerrar">Todas las ONGs informaron la finalización. Ya podés cerrar la ejecución.</p>
+          <p *ngIf="!d.puedeCerrar">Quedan {{ pendientes(d) }} ONGs en curso. Lo normal es esperar a que finalicen.</p>
+          <ng-container *ngIf="esCoordinador(); else soloLectura">
+            <ng-container *ngIf="!d.puedeCerrar">
+              <label for="motivo">Motivo del cierre forzado <span>(obligatorio)</span></label>
+              <textarea id="motivo" rows="3" [formControl]="motivo" maxlength="1000"
+                placeholder="Ej.: la ONG no responde y la emergencia fue controlada"></textarea>
+              <p class="detalle">El motivo queda registrado para auditoría. Se liberan los recursos de todas las ONGs.</p>
+            </ng-container>
+            <button *ngIf="!confirmando()" class="boton" [class.peligro]="!d.puedeCerrar" [disabled]="!puedeEnviar(d)"
+              (click)="pedirConfirmacion(d)">
+              <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
+              {{ d.puedeCerrar ? 'Cerrar ejecución' : 'Forzar cierre' }}</button>
+            <div *ngIf="confirmando()" class="confirmacion">
+              <p>Se liberarán los recursos en el Sistema Nacional y la emergencia quedará finalizada. No se puede deshacer.</p>
+              <div class="botones">
+                <button class="boton" [disabled]="enviando()" (click)="cerrar(d)">Confirmar cierre</button>
+                <button class="boton secundario" [disabled]="enviando()" (click)="confirmando.set(false)">Cancelar</button>
+              </div>
+            </div>
+          </ng-container>
+          <ng-template #soloLectura><p class="detalle">Solo el Centro Coordinador puede cerrar la ejecución.</p></ng-template>
+        </ng-container>
+
+        <p *ngIf="errorCierre()" class="mensaje error" role="alert">{{ errorCierre() }}</p>
+      </aside>
+    </div>
+  </ng-container>
+</section>

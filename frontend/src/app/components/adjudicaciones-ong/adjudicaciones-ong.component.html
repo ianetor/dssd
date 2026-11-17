@@ -1,0 +1,67 @@
+<section class="adjudicaciones">
+  <header class="titulo flex justify-between items-center gap-4 flex-wrap">
+    <div>
+      <p class="eyebrow"><a routerLink="/">Inicio</a> / Portal ONG</p>
+      <h1><span class="material-symbols-outlined" aria-hidden="true">notifications_active</span> Mis adjudicaciones</h1>
+      <p>Emergencias en las que tu organización fue seleccionada y sus recursos quedaron comprometidos.</p>
+    </div>
+    <a routerLink="/emergencias" class="boton secundario">
+      <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span> Volver a convocatorias</a>
+  </header>
+
+  <p *ngIf="lista() === null && !error()" role="status">Cargando adjudicaciones…</p>
+  <p *ngIf="error()" class="mensaje error" role="alert">{{ error() }}</p>
+  <p *ngIf="aviso()" class="mensaje aviso" role="status">{{ aviso() }}</p>
+
+  <ng-container *ngIf="lista() as items">
+    <div *ngIf="!items.length" class="tarjeta vacio bg-white border border-slate-200 rounded-xl shadow-sm text-center py-12 px-4">
+      <span class="material-symbols-outlined" aria-hidden="true">inbox</span>
+      <h2>Todavía no tenés adjudicaciones</h2>
+      <p>Cuando una oferta tuya sea adjudicada vas a ver acá la notificación.</p>
+    </div>
+
+    <article *ngFor="let a of items" class="tarjeta bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6"
+      [class.finalizada]="a.participacion.estado === 'FINALIZADA'">
+      <p class="eyebrow">Emergencia #{{ a.emergenciaId }} · Adjudicada el
+        {{ a.participacion.fechaInicio | date:'dd/MM/yyyy HH:mm' }}</p>
+      <div class="flex justify-between items-center gap-4 flex-wrap">
+        <h2>{{ a.zonaAfectada }} · Gravedad {{ a.nivelGravedad }}</h2>
+        <span class="badge" [class.ok]="a.participacion.estado === 'FINALIZADA'">
+          {{ a.participacion.estado === 'FINALIZADA' ? 'Actividades finalizadas' : 'En ejecución' }}</span>
+      </div>
+      <p class="descripcion">{{ a.descripcion }}</p>
+
+      <h3>Recursos comprometidos</h3>
+      <ul class="recursos">
+        <li *ngFor="let r of a.participacion.recursos"><strong>{{ r.cantidad }}</strong> {{ r.tipoRecurso }}
+          <span *ngIf="r.unidad">({{ r.unidad }})</span></li>
+      </ul>
+      <p class="detalle" *ngIf="a.estadoEmergencia !== 'FINALIZADA'">Estos recursos están bloqueados en el Sistema
+        Nacional y no pueden ofrecerse en otra emergencia hasta el cierre.</p>
+      <p class="detalle" *ngIf="a.estadoEmergencia === 'FINALIZADA'">Emergencia cerrada: los recursos fueron liberados.</p>
+
+      <ng-container *ngIf="a.participacion.estado === 'FINALIZADA'">
+        <p class="detalle">Finalización informada el {{ a.participacion.fechaFinalizacion | date:'dd/MM/yyyy HH:mm' }}.</p>
+        <p class="detalle" *ngIf="a.participacion.observaciones">Observaciones: {{ a.participacion.observaciones }}</p>
+      </ng-container>
+
+      <div *ngIf="enCurso(a)" class="finalizar">
+        <label [attr.for]="'obs-' + a.emergenciaId">Observaciones <span>(opcional)</span></label>
+        <textarea [id]="'obs-' + a.emergenciaId" rows="2" maxlength="1000" [(ngModel)]="observaciones[a.emergenciaId]"
+          placeholder="Resumen de lo realizado o novedades para el Centro Coordinador"></textarea>
+        <button *ngIf="confirmando() !== a.emergenciaId" class="boton" [disabled]="enviando() !== null"
+          (click)="confirmando.set(a.emergenciaId)">
+          <span class="material-symbols-outlined" aria-hidden="true">task_alt</span> Marcar actividades como finalizadas</button>
+        <div *ngIf="confirmando() === a.emergenciaId" class="confirmacion">
+          <p>Se informará al Centro Coordinador que tu organización terminó su labor. No se puede deshacer.</p>
+          <div class="botones">
+            <button class="boton" [disabled]="enviando() !== null" (click)="finalizar(a)">Confirmar</button>
+            <button class="boton secundario" [disabled]="enviando() !== null" (click)="confirmando.set(null)">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <p *ngIf="a.participacion.estado === 'EN_CURSO' && a.estadoEmergencia !== 'EN_EJECUCION'" class="detalle">
+        El Centro Coordinador cerró la ejecución ({{ a.estadoEmergencia | textoCodigo }}).</p>
+    </article>
+  </ng-container>
+</section>

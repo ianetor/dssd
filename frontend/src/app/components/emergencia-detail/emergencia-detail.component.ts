@@ -8,6 +8,13 @@ import { EmergenciaService } from '../../services/emergencia.service';
 import { Emergencia, LotePayload } from '../../models/emergencia.model';
 import { ConvocatoriaTimerComponent } from '../convocatoria-timer/convocatoria-timer.component';
 import { RelojConvocatoriaService } from '../../services/reloj-convocatoria.service';
+import { CatalogoNacionalService, RecursoNacional } from '../../services/catalogo-nacional.service';
+
+/** Resultado de comparar la cantidad pedida con la disponibilidad nacional. */
+export interface EvaluacionDisponibilidad {
+  nivel: 'ok' | 'aviso' | 'bloqueo';
+  mensaje: string;
+}
 
 interface LoteItem {
   nombre: string;
@@ -31,6 +38,13 @@ export class EmergenciaDetailComponent implements OnInit {
   private readonly cd = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly reloj = inject(RelojConvocatoriaService);
+  private readonly catalogoNacional = inject(CatalogoNacionalService);
+
+  // Catálogo del Sistema Nacional: los lotes usan nombres que la validación nacional reconoce.
+  catalogo: RecursoNacional[] = [];
+  catalogoEstado: 'cargando' | 'ok' | 'error' = 'cargando';
+  /** Texto libre: respaldo si el Sistema Nacional no responde o el recurso no está en el catálogo. */
+  nombreManual = false;
   private seguimiento?: Subscription;
 
   emergencia?: Emergencia;
@@ -113,6 +127,8 @@ export class EmergenciaDetailComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.cargarCatalogo();
+    this.loteForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.cd.detectChanges());
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.seguimiento?.unsubscribe();
       const idParam = params.get('id');
@@ -184,12 +200,78 @@ export class EmergenciaDetailComponent implements OnInit {
     }
   }
 
+  cargarCatalogo(): void {
+    this.catalogoEstado = 'cargando';
+    this.catalogoNacional.recursos().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (recursos) => {
+        this.catalogo = recursos;
+        this.catalogoEstado = 'ok';
+        this.nombreManual = recursos.length === 0;
+        this.cd.detectChanges();
+      },
+      error: () => {
+        // Sin catálogo no se bloquea al coordinador: puede escribir el nombre a mano.
+        this.catalogo = [];
+        this.catalogoEstado = 'error';
+        this.nombreManual = true;
+        this.cd.detectChanges();
+      },
+    });
+  }
+
+  alternarNombreManual(): void {
+    this.nombreManual = !this.nombreManual;
+    this.loteForm.get('nombre')?.reset('');
+  }
+
+  /** Recurso del catálogo que coincide con el nombre elegido, si existe. */
+  get recursoSeleccionado(): RecursoNacional | undefined {
+    const nombre = (this.loteForm.value.nombre ?? '').trim().toLowerCase();
+    return nombre ? this.catalogo.find((r) => r.tipoRecurso.trim().toLowerCase() === nombre) : undefined;
+  }
+
+  /** Evaluación de la cantidad cargada contra el recurso elegido; null si no hay nada que comparar. */
+  get disponibilidadLote(): EvaluacionDisponibilidad | null {
+    const recurso = this.recursoSeleccionado;
+    const cantidad = Number(this.loteForm.value.cantidad);
+    if (!recurso || !Number.isFinite(cantidad) || cantidad < 1) return null;
+    return this.evaluarDisponibilidad(cantidad, recurso.cantidadDisponible);
+  }
+
+  /**
+   * Política del formulario de lotes: qué hacer cuando el coordinador pide una cantidad
+   * frente a lo que hay disponible a nivel nacional.
+   *  - 'ok': no se muestra nada.
+   *  - 'aviso': se muestra el mensaje pero se permite agregar el lote.
+   *  - 'bloqueo': se muestra el mensaje y no se permite agregar el lote.
+   */
+  evaluarDisponibilidad(cantidad: number, disponible: number): EvaluacionDisponibilidad {
+    if (cantidad <= disponible) return { nivel: 'ok', mensaje: '' };
+    // Mismo umbral que la validación de cobertura del backend: al menos el 50 % del lote.
+    const minimo = Math.ceil(cantidad / 2);
+    if (disponible <= 0) {
+      return { nivel: 'bloqueo', mensaje: 'Hoy no hay unidades disponibles de este recurso a nivel nacional.' };
+    }
+    if (disponible < minimo) {
+      return {
+        nivel: 'aviso',
+        mensaje: `Hay ${disponible} disponibles y el mínimo para validar el lote es ${minimo}: `
+          + 'con la disponibilidad actual no alcanzaría la cobertura mínima.',
+      };
+    }
+    return {
+      nivel: 'aviso',
+      mensaje: `Hay ${disponible} disponibles: el lote podría cubrirse solo en parte (mínimo ${minimo}).`,
+    };
+  }
+
   agregarLote(): void {
     if (this.edicionBloqueada) return;
     if (this.loteForm.invalid) {
       this.loteForm.markAllAsTouched();
       return;
     }
+    if (this.disponibilidadLote?.nivel === 'bloqueo') return;
 
     const val = this.loteForm.value;
     const nombreNuevo = (val.nombre ?? '').trim();

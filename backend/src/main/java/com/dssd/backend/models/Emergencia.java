@@ -81,6 +81,13 @@ public abstract class Emergencia {
     private java.time.Instant avanceCoberturaProximoIntento;
     private String avanceCoberturaError;
 
+    // Etapa de ejecución: desde la notificación de adjudicación hasta la liberación nacional.
+    private java.time.Instant fechaInicioEjecucion;
+    private java.time.Instant fechaCierreEjecucion;
+    private String coordinadorCierre;
+    @Column(length = 1000)
+    private String motivoCierreEjecucion;
+
     @OneToMany(mappedBy = "emergencia", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
     private List<LoteNecesidad> lotes = new ArrayList<>();
 

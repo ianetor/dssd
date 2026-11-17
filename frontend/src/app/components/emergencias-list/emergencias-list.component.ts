@@ -176,6 +176,11 @@ export class EmergenciasListComponent implements OnInit {
     this.changeDetector.detectChanges();
   }
 
+  /** Etapa de ejecución: desde la adjudicación hasta la liberación nacional. */
+  enEjecucion(emg: Emergencia): boolean {
+    return ['EN_EJECUCION', 'CIERRE_PENDIENTE', 'FINALIZADA'].includes(emg.estado ?? '');
+  }
+
   esConvocatoriaAbierta(emg: Emergencia): boolean {
     return emg.estado === 'CONVOCATORIA_ABIERTA';
   }

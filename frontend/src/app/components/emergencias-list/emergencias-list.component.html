@@ -28,6 +28,12 @@
         <span>Actualizar</span>
       </button>
 
+      <a *ngIf="esRepresentanteOng" routerLink="/portal-ong/adjudicaciones"
+        class="px-4 py-2 rounded-lg bg-[#1e3e62] hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow">
+        <span class="material-symbols-outlined text-[16px]">notifications_active</span>
+        <span>Mis adjudicaciones</span>
+      </a>
+
       <a *ngIf="esOperadorMunicipal" routerLink="/nueva"
         class="px-4 py-2 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold flex items-center gap-1.5 shadow">
         <span class="material-symbols-outlined text-[16px]">add</span>
@@ -264,6 +270,12 @@
               <span>Gestionar Lotes</span>
             </a>
 
+            <a *ngIf="enEjecucion(emg)" [routerLink]="['/coordinador/ejecucion', emg.id]"
+              class="px-3 py-1.5 rounded-lg bg-[#1e3e62] hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
+              <span class="material-symbols-outlined text-[16px]">monitoring</span>
+              <span>{{ emg.estado === 'FINALIZADA' ? 'Ver ejecución' : 'Monitorear ejecución' }}</span>
+            </a>
+
             <!-- Si no está abierta aún -->
             <a *ngIf="emg.estado === 'REGISTRADA'" [routerLink]="['/emergencias', emg.id]"
               class="px-3 py-1.5 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
@@ -275,6 +287,11 @@
           <!-- Funcionalidades para AUDITOR_DIRECTIVO -->
           <div *ngIf="esAuditorDirectivo" class="flex items-center justify-between gap-2">
             <span class="text-[11px] font-mono text-slate-500">Módulo de Auditoría</span>
+            <a *ngIf="enEjecucion(emg)" [routerLink]="['/coordinador/ejecucion', emg.id]"
+              class="px-3 py-1.5 rounded-lg bg-[#1e3e62] hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
+              <span class="material-symbols-outlined text-[16px]">monitoring</span>
+              <span>{{ emg.estado === 'FINALIZADA' ? 'Ver ejecución' : 'Monitorear ejecución' }}</span>
+            </a>
             <a [routerLink]="['/emergencias', emg.id]"
               class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1 shadow transition-all">
               <span class="material-symbols-outlined text-[16px]">monitoring</span>
