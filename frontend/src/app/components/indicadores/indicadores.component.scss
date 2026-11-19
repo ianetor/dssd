@@ -1,0 +1,28 @@
+:host{display:block;color:#334155;font-size:.875rem}
+.indicadores{max-width:1100px;margin:auto;padding:2rem;display:grid;gap:1.5rem}
+header.titulo{padding-bottom:1.25rem;border-bottom:1px solid #e2e8f0}
+h1,h2,h3{color:#0b192c;font-weight:750;margin:0}
+h1{font-size:1.6rem;display:flex;align-items:center;gap:.6rem}h2{font-size:1.05rem}h3{font-size:.875rem;margin-bottom:.8rem}
+p{line-height:1.6;margin:.5rem 0}
+.eyebrow{font:600 .65rem 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin:0 0 .65rem}
+.detalle{font-size:.75rem;color:#64748b}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin:1.2rem 0;background:#f8fafc;padding:1rem;border-radius:8px}
+.kpis dt{font-size:.65rem;color:#64748b;margin-bottom:.25rem}.kpis dd{font:700 1.2rem 'JetBrains Mono',monospace;color:#0b192c;margin:0}
+.grafico{margin-top:1rem}.lienzo{position:relative;height:300px}
+.tabla{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{text-align:left;font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:#64748b;border-bottom:1px solid #e2e8f0;padding:.5rem}
+td{border-bottom:1px solid #f1f5f9;padding:.55rem .5rem}td.num{font-family:'JetBrains Mono',monospace;font-weight:600}
+.botones{display:flex;gap:.6rem;flex-wrap:wrap}
+.boton{display:inline-flex;justify-content:center;align-items:center;gap:.4rem;padding:.6rem .9rem;border-radius:8px;font-weight:700;font-size:.75rem;cursor:pointer;color:#334155;background:white;border:1px solid #cbd5e1}
+.boton:hover{background:#f1f5f9}.boton:disabled{opacity:.5;cursor:not-allowed}.boton span{font-size:18px}
+.mensaje{padding:1rem;border-radius:8px;font-size:.8rem}
+.mensaje.error{background:#fef2f2;color:#991b1b}.mensaje.aviso{background:#eff6ff;color:#1e40af}
+@media(max-width:600px){.indicadores{padding:1.25rem 1rem;gap:1rem}h1{font-size:1.3rem}}
+.grilla{display:grid;gap:1.5rem}
+@media(min-width:900px){.grilla{grid-template-columns:1fr 1fr}}
+.cabecera{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}
+.boton.chico{padding:.4rem .7rem;font-size:.7rem}.boton.chico span{font-size:16px}
+label{display:block;font-size:.7rem;font-weight:600;color:#64748b;margin:1rem 0 .3rem}
+select{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:.5rem .6rem;font:inherit;background:#f8fafc}
+.grilla .lienzo{height:260px;margin-top:1rem}

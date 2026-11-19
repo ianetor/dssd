@@ -249,8 +249,13 @@ export class EmergenciaDetailComponent implements OnInit {
     if (cantidad <= disponible) return { nivel: 'ok', mensaje: '' };
     // Mismo umbral que la validación de cobertura del backend: al menos el 50 % del lote.
     const minimo = Math.ceil(cantidad / 2);
+    // Nunca se bloquea: lo comprometido en otras emergencias puede liberarse antes de que cierre la convocatoria.
     if (disponible <= 0) {
-      return { nivel: 'bloqueo', mensaje: 'Hoy no hay unidades disponibles de este recurso a nivel nacional.' };
+      return {
+        nivel: 'aviso',
+        mensaje: 'Hoy no hay unidades disponibles a nivel nacional. Podés publicar el lote igual: '
+          + 'se cubrirá si otras emergencias liberan recursos antes del cierre.',
+      };
     }
     if (disponible < minimo) {
       return {

@@ -53,6 +53,11 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['COORDINADOR_REGIONAL', 'AUDITOR_DIRECTIVO'])],
   },
   {
+    path: 'directivo/indicadores',
+    loadComponent: () => import('./components/indicadores/indicadores.component').then(m => m.IndicadoresComponent),
+    canActivate: [authGuard, roleGuard(['AUDITOR_DIRECTIVO', 'COORDINADOR_REGIONAL'])],
+  },
+  {
     path: 'portal-ong/adjudicaciones',
     loadComponent: () => import('./components/adjudicaciones-ong/adjudicaciones-ong.component').then(m => m.AdjudicacionesOngComponent),
     canActivate: [authGuard, roleGuard(['REPRESENTANTE_ONG'])],

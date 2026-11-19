@@ -39,6 +39,22 @@ public class BonitaService {
 
     private volatile String jsessionId;
     
+    /**
+     * Historial de un caso: una fila por cada cambio de estado de cada tarea (initializing, ready, completed...),
+     * con su archivedDate. Sirve para medir cuánto duró cada etapa del proceso.
+     */
+    public List<JsonNode> historialDelCaso(Long caseId) {
+        HttpHeaders headers = login();
+        List<JsonNode> filas = new ArrayList<>();
+        for (int pagina = 0; ; pagina++) {
+            JsonNode lote = leerPublicacion("/API/bpm/archivedFlowNode?p=" + pagina
+                    + "&c=100&f=caseId=" + caseId, headers);
+            if (!lote.isArray()) throw new IllegalStateException("Historial de Bonita inválido");
+            lote.forEach(filas::add);
+            if (lote.size() < 100) return filas;
+        }
+    }
+
     private static final String TAREA_MONITOREO = "Monitorear despliegue y ejecucion";
 
     public BonitaService(

@@ -1,0 +1,116 @@
+<section class="indicadores">
+  <header class="titulo flex justify-between items-center gap-4 flex-wrap">
+    <div>
+      <p class="eyebrow"><a routerLink="/">Inicio</a> / Auditoría y Dirección</p>
+      <h1><span class="material-symbols-outlined" aria-hidden="true">bar_chart</span> Indicadores de gestión</h1>
+      <p>Datos de las emergencias combinados con el historial del proceso en Bonita.</p>
+    </div>
+    <div class="botones">
+      <button class="boton secundario" (click)="cargar()" [disabled]="cargando() || cargandoResumen()">
+        <span class="material-symbols-outlined" aria-hidden="true">refresh</span> Actualizar</button>
+      <button class="boton secundario" (click)="exportarJson()" [disabled]="!resumen() && !datos()">
+        <span class="material-symbols-outlined" aria-hidden="true">data_object</span> Exportar todo (JSON)</button>
+    </div>
+  </header>
+
+  <p *ngIf="errorResumen()" class="mensaje error" role="alert">{{ errorResumen() }}</p>
+
+  <div class="grilla" *ngIf="resumen() as r">
+    <!-- Estado de las emergencias -->
+    <article class="tarjeta bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6">
+      <div class="cabecera">
+        <div>
+          <p class="eyebrow">Base local</p>
+          <h2>Estado de las emergencias</h2>
+        </div>
+        <button class="boton chico" (click)="exportarEstadosCsv()" [disabled]="!r.estados.length">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span> CSV</button>
+      </div>
+      <p class="detalle">{{ totalEmergencias() }} {{ totalEmergencias() === 1 ? 'emergencia registrada' : 'emergencias registradas' }}</p>
+      <p *ngIf="!r.estados.length" class="mensaje aviso">Todavía no hay emergencias registradas.</p>
+      <div *ngIf="r.estados.length" class="lienzo">
+        <canvas baseChart type="doughnut" [data]="graficoEstados()" [options]="opcionesEstados"
+          aria-label="Cantidad de emergencias por estado"></canvas>
+      </div>
+    </article>
+
+    <!-- Suministros movilizados por mes -->
+    <article class="tarjeta bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6">
+      <div class="cabecera">
+        <div>
+          <p class="eyebrow">Base local</p>
+          <h2>Suministros movilizados por mes</h2>
+        </div>
+        <button class="boton chico" (click)="exportarSuministrosCsv()" [disabled]="!r.suministros.length">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span> CSV</button>
+      </div>
+      <p class="detalle">Unidades comprometidas en las emergencias que pasaron a ejecución, según el mes en que empezó.</p>
+      <p *ngIf="!r.suministros.length" class="mensaje aviso">Todavía ninguna emergencia llegó a ejecución.</p>
+      <ng-container *ngIf="r.suministros.length">
+        <label for="recurso">Recurso</label>
+        <select id="recurso" [value]="recursoElegido()" (change)="elegirRecurso($any($event.target).value)">
+          <option *ngFor="let x of recursos()" [value]="x.clave">{{ x.nombre }}{{ x.unidad ? ' (' + x.unidad + ')' : '' }}</option>
+        </select>
+        <div class="lienzo">
+          <canvas baseChart type="bar" [data]="graficoSuministros()" [options]="opcionesSuministros"
+            aria-label="Unidades comprometidas por mes del recurso elegido"></canvas>
+        </div>
+      </ng-container>
+    </article>
+  </div>
+
+  <!-- Tiempo de revisión (Bonita) -->
+  <p *ngIf="cargando()" role="status">Consultando el historial de Bonita…</p>
+  <p *ngIf="error()" class="mensaje error" role="alert">{{ error() }}</p>
+
+  <ng-container *ngIf="datos() as d">
+    <article class="tarjeta bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6">
+      <div class="cabecera">
+        <div>
+          <p class="eyebrow">Bonita · Centro Coordinador</p>
+          <h2>{{ d.etapa }}</h2>
+        </div>
+        <button class="boton chico" (click)="exportarCsv()" [disabled]="!d.cantidad">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span> CSV</button>
+      </div>
+      <p class="detalle">Tiempo desde que la emergencia llega al coordinador hasta que publica los lotes.</p>
+
+      <dl class="kpis">
+        <div><dt>Promedio</dt><dd>{{ d.cantidad ? duracion(d.promedioSegundos) : '—' }}</dd></div>
+        <div><dt>Más rápida</dt><dd>{{ d.cantidad ? duracion(d.minimoSegundos) : '—' }}</dd></div>
+        <div><dt>Más lenta</dt><dd>{{ d.cantidad ? duracion(d.maximoSegundos) : '—' }}</dd></div>
+        <div><dt>Revisiones medidas</dt><dd>{{ d.cantidad }}</dd></div>
+      </dl>
+
+      <p *ngIf="!d.cantidad" class="mensaje aviso">Todavía no hay revisiones completadas en Bonita para medir.</p>
+
+      <div *ngIf="d.cantidad" class="grafico">
+        <h3>Promedio por tipo de emergencia</h3>
+        <div class="lienzo">
+          <canvas baseChart type="bar" [data]="grafico" [options]="opciones" aria-label="Minutos promedio por tipo de emergencia"></canvas>
+        </div>
+      </div>
+      <p *ngIf="d.casosSinDatos" class="detalle">
+        {{ d.casosSinDatos }} {{ d.casosSinDatos === 1 ? 'emergencia todavía no completó' : 'emergencias todavía no completaron' }}
+        esta etapa o no tienen historial en Bonita.</p>
+    </article>
+
+    <article *ngIf="d.cantidad" class="tarjeta bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6">
+      <h3>Detalle por emergencia</h3>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Emergencia</th><th>Tipo</th><th>Municipio</th><th>Publicó los lotes</th><th>Duración</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let m of d.mediciones">
+              <td>#{{ m.emergenciaId }} <span class="detalle">caso {{ m.caseId }}</span></td>
+              <td>{{ m.tipoEmergencia | textoCodigo }}</td>
+              <td>{{ m.municipio }}</td>
+              <td>{{ m.fin | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td class="num">{{ duracion(m.segundos) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </ng-container>
+</section>
